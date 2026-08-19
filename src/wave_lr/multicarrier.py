@@ -222,3 +222,216 @@ def fit_multicarrier_als(
         "loss_history": history,
         "final_observed_loss": history[-1] if history else float("nan"),
     }
+
+
+def _pick_peak_times(traces: NDArray[np.float64], times: NDArray[np.float64]):
+    """Envelope peak time and its amplitude at every location."""
+
+    envelope = np.abs(traces)
+    index = np.argmax(envelope, axis=1)
+    return times[index], envelope[np.arange(len(index)), index]
+
+
+def fit_virtual_source(
+    coords: NDArray[np.float64],
+    picked: NDArray[np.float64],
+    weights: NDArray[np.float64],
+    speed: float = 1.0,
+    span: float = 2.0,
+    grid: int = 61,
+    refinements: int = 3,
+) -> tuple[NDArray[np.float64], float, float]:
+    """Fit an arrival surface ``|x - p| / c + t0`` to picked times.
+
+    A specular reflection arrives as though it came from an image source, so a
+    two-parameter position plus a time offset describes a whole reflected
+    wavefront. Positions are searched on a grid that extends outside the domain
+    because image sources live there, then refined locally.
+    """
+
+    weights = np.asarray(weights, dtype=float)
+    weights = weights / max(weights.sum(), 1e-30)
+    lo = coords.min(axis=0) - span
+    hi = coords.max(axis=0) + span
+    best = None
+    for _ in range(refinements):
+        axis_x = np.linspace(lo[0], hi[0], grid)
+        axis_y = np.linspace(lo[1], hi[1], grid)
+        candidates = np.stack(np.meshgrid(axis_x, axis_y, indexing="ij"), axis=-1).reshape(-1, 2)
+        for start in range(0, len(candidates), 512):
+            block = candidates[start : start + 512]
+            distance = np.linalg.norm(coords[None, :, :] - block[:, None, :], axis=2) / speed
+            offset = ((picked[None, :] - distance) * weights[None, :]).sum(axis=1)
+            residual = picked[None, :] - distance - offset[:, None]
+            cost = (weights[None, :] * residual**2).sum(axis=1)
+            index = int(np.argmin(cost))
+            if best is None or cost[index] < best[2]:
+                best = (block[index], float(offset[index]), float(cost[index]))
+        step = np.array([axis_x[1] - axis_x[0], axis_y[1] - axis_y[0]])
+        lo, hi = best[0] - 2 * step, best[0] + 2 * step
+    return best[0], best[1], float(np.sqrt(best[2]))
+
+
+def scan_virtual_sources(
+    field: NDArray[np.complex128],
+    frequencies: NDArray[np.float64],
+    coords: NDArray[np.float64],
+    speed: float = 1.0,
+    span: float = 2.0,
+    grid: int = 61,
+    refinements: int = 3,
+    sample: int = 512,
+    objective: str = "rank1",
+    device: str | None = None,
+) -> tuple[NDArray[np.float64], float]:
+    """Find the virtual source whose wavefront the field stacks along best.
+
+    Picking an arrival per location fails once the coda is dense, because the
+    envelope peak of a reverberant residual is noise. Coherent stacking asks a
+    different question -- for which wavefront shape does the field add up in
+    phase -- and stays informative when no single arrival dominates. In the
+    frequency domain the stack is ``sum_x u(x,f) exp(+2 pi i f tau_p(x))``,
+    whose magnitude is unaffected by the unknown time offset. ``objective``
+    selects between the plain stack and the leading singular value of the
+    aligned block, which tolerates amplitude taper and polarity flips.
+    """
+
+    import torch
+
+    if device is None:
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+    rows = np.linspace(0, len(coords) - 1, min(sample, len(coords))).astype(int)
+    values = torch.from_numpy(np.ascontiguousarray(field[rows])).to(device).to(torch.complex64)
+    positions = torch.from_numpy(np.ascontiguousarray(coords[rows])).to(device).float()
+    freq = torch.from_numpy(np.ascontiguousarray(frequencies)).to(device).float()
+    total = float(torch.linalg.norm(values) ** 2) * len(rows)
+
+    lo = coords.min(axis=0) - span
+    hi = coords.max(axis=0) + span
+    best = (np.zeros(2), -1.0)
+    for _ in range(refinements):
+        axis_x = np.linspace(lo[0], hi[0], grid)
+        axis_y = np.linspace(lo[1], hi[1], grid)
+        candidates = np.stack(
+            np.meshgrid(axis_x, axis_y, indexing="ij"), axis=-1
+        ).reshape(-1, 2)
+        block_size = max(1, 2_000_000 // (len(rows) * len(frequencies)) or 1)
+        for start in range(0, len(candidates), block_size):
+            block = torch.from_numpy(candidates[start : start + block_size]).to(device).float()
+            delays = torch.cdist(block, positions) / speed
+            phase = torch.exp(2j * np.pi * delays[:, :, None] * freq[None, None, :])
+            aligned = values[None] * phase
+            if objective == "stack":
+                power = (aligned.sum(dim=1).abs() ** 2).sum(dim=1) / total
+            else:
+                # Leading singular value by two power iterations, started from
+                # the uniform vector: unlike a plain stack this survives the
+                # amplitude taper and the polarity flip of a wall reflection.
+                left = torch.ones(
+                    aligned.shape[0], aligned.shape[1], dtype=aligned.dtype, device=device
+                )
+                for _ in range(2):
+                    right = torch.einsum("bxf,bx->bf", aligned.conj(), left)
+                    right = right / right.norm(dim=1, keepdim=True).clamp_min(1e-20)
+                    left = torch.einsum("bxf,bf->bx", aligned, right.conj())
+                    left = left / left.norm(dim=1, keepdim=True).clamp_min(1e-20)
+                right = torch.einsum("bxf,bx->bf", aligned.conj(), left)
+                power = (right.abs() ** 2).sum(dim=1) / total
+            index = int(torch.argmax(power))
+            if float(power[index]) > best[1]:
+                best = (candidates[start : start + block_size][index], float(power[index]))
+        step = np.array([axis_x[1] - axis_x[0], axis_y[1] - axis_y[0]])
+        lo, hi = best[0] - 2 * step, best[0] + 2 * step
+    return best[0], best[1]
+
+
+def estimate_carriers(
+    spectrum,
+    n_carriers: int = 4,
+    rank: int = 2,
+    speed: float = 1.0,
+    seed_delays: NDArray[np.float64] | None = None,
+    coords: NDArray[np.float64] | None = None,
+    sweeps: int = 20,
+    objective: str = "stack",
+    budget: int = 24,
+    tolerance: float = 0.995,
+) -> tuple[NDArray[np.float64], list[dict]]:
+    """Grow a carrier bank from the data alone, one arrival at a time.
+
+    Each round refits the whole multi-carrier model, scans the *model* residual
+    for the wavefront it stacks along best, and adds that virtual source. A
+    carrier is kept only if it improves the fit at a *fixed* total parameter
+    budget -- splitting ``budget`` across one more carrier lowers the rank each
+    one gets, so a useless carrier makes the model worse and is rejected. No
+    geometry, boundary description or image-source construction is used.
+    """
+
+    from .spectra import Spectrum, band_limited_traces, shift_spectrum
+    from .theory import occupancy_from_traces
+
+    if coords is None:
+        raise ValueError("coords are required to fit virtual sources")
+
+    def occupancy_of(values: NDArray[np.complex128], tau: NDArray[np.float64]) -> float:
+        block = Spectrum(values, spectrum.frequencies, spectrum.dt, spectrum.n_padded)
+        traces, _ = band_limited_traces(shift_spectrum(block, tau - tau.max()))
+        return occupancy_from_traces(traces, spectrum.dt, spectrum.bandwidth)
+
+    def next_carrier(residual: NDArray[np.complex128]) -> tuple[NDArray[np.float64], dict]:
+        position, power = scan_virtual_sources(
+            residual, spectrum.frequencies, coords, speed=speed, objective=objective
+        )
+        distance = np.linalg.norm(coords - position, axis=1) / speed
+        block = Spectrum(residual, spectrum.frequencies, spectrum.dt, spectrum.n_padded)
+        traces, times = band_limited_traces(shift_spectrum(block, distance - distance.max()))
+        picked, amplitude = _pick_peak_times(traces, times)
+        weights = amplitude / max(amplitude.sum(), 1e-30)
+        offset = float((picked * weights).sum()) - float(distance.max())
+        return distance + offset, {"virtual_source": position.tolist(), "stack_power": power}
+
+    delays: list[NDArray[np.float64]] = []
+    diagnostics: list[dict] = []
+    residual = spectrum.values
+    if seed_delays is not None:
+        delays.append(np.asarray(seed_delays, dtype=float))
+        diagnostics.append({"carrier": 0, "virtual_source": None, "source": "seed"})
+    else:
+        tau, info = next_carrier(residual)
+        delays.append(tau)
+        diagnostics.append({"carrier": 0, "source": "scan", **info})
+
+    norm = np.linalg.norm(spectrum.values)
+
+    def budget_error(bank: list[NDArray[np.float64]]) -> tuple[float, NDArray[np.complex128]]:
+        share = max(budget // len(bank), 1)
+        estimate, _ = fit_multicarrier_als(
+            spectrum.values, spectrum.frequencies, np.stack(bank), rank=share, sweeps=sweeps
+        )
+        return float(np.linalg.norm(estimate - spectrum.values) / norm), estimate
+
+    best_error, estimate = budget_error(delays)
+    diagnostics[0]["budget_error"] = best_error
+    diagnostics[0]["residual_occupancy"] = occupancy_of(spectrum.values, delays[0])
+    while len(delays) < n_carriers and budget // (len(delays) + 1) >= 1:
+        residual = spectrum.values - estimate
+        tau, info = next_carrier(residual)
+        candidate = delays + [tau]
+        error, trial = budget_error(candidate)
+        entry = {
+            "carrier": len(delays),
+            "source": "scan",
+            "residual_energy": float(np.linalg.norm(residual) / norm),
+            "budget_error": error,
+            "previous_budget_error": best_error,
+            "residual_occupancy": occupancy_of(residual, tau),
+            **info,
+        }
+        if error > tolerance * best_error:
+            entry["accepted"] = False
+            diagnostics.append(entry)
+            break
+        entry["accepted"] = True
+        delays, best_error, estimate = candidate, error, trial
+        diagnostics.append(entry)
+    return np.stack(delays), diagnostics

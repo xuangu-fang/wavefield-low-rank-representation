@@ -66,12 +66,19 @@ def main() -> None:
     parser.add_argument("--maze-limit", type=int, default=12)
     parser.add_argument("--subsample", type=int, default=2)
     parser.add_argument("--inclusion-limit", type=int, default=10)
+    parser.add_argument("--staircase-split", default="test")
+    parser.add_argument("--staircase-limit", type=int, default=None)
+    parser.add_argument("--skip", default="", help="comma-separated: maze,inclusions,staircase")
     parser.add_argument("--no-completion", action="store_true")
+    parser.add_argument("--out", default="exp06_public_data_tasks.json")
     args = parser.parse_args()
     completion = not args.no_completion
+    skip = {name for name in args.skip.split(",") if name}
 
     rows = []
-    for index, case in enumerate(load_well_acoustic("test", limit=args.maze_limit)):
+    for index, case in enumerate(
+        [] if "maze" in skip else load_well_acoustic("test", limit=args.maze_limit)
+    ):
         row = analyze_case(case, *MAZE_BAND)
         spectrum = to_spectrum(case.traces, case.dt, *MAZE_BAND)
         delays = {"raw": None, "eikonal": case.travel_time, "straight": case.straight_time}
@@ -86,7 +93,9 @@ def main() -> None:
             flush=True,
         )
 
-    for index, case in enumerate(load_well_scattering(limit=args.inclusion_limit)):
+    for index, case in enumerate(
+        [] if "inclusions" in skip else load_well_scattering(limit=args.inclusion_limit)
+    ):
         row = analyze_case(case, *INCLUSION_BAND)
         spectrum = to_spectrum(case.traces, case.dt, *INCLUSION_BAND)
         delays = {"raw": None, "eikonal": case.travel_time, "straight": case.straight_time}
@@ -101,7 +110,13 @@ def main() -> None:
             flush=True,
         )
 
-    for index, case in enumerate(load_staircase("test", subsample=args.subsample)):
+    for index, case in enumerate(
+        []
+        if "staircase" in skip
+        else load_staircase(
+            args.staircase_split, limit=args.staircase_limit, subsample=args.subsample
+        )
+    ):
         delays = {"raw": None, "eikonal": case.travel_time, "straight": case.straight_time}
         row = {"case": case.name, "dataset": case.dataset, "n_x": case.fields.shape[0]}
         for name, tau in delays.items():
@@ -125,8 +140,9 @@ def main() -> None:
             flush=True,
         )
 
-    (RESULTS / "exp06_public_data_tasks.json").write_text(json.dumps({"rows": rows}, indent=2))
-    print("wrote exp06_public_data_tasks.json")
+    name = args.out
+    (RESULTS / name).write_text(json.dumps({"rows": rows}, indent=2))
+    print(f"wrote {name}")
 
 
 if __name__ == "__main__":

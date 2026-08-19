@@ -228,8 +228,7 @@ FIGURE_SLOTS = {
     "{{FIG8}}": "fig8_multicarrier.png",
 }
 
-from _report_body import BODY  # noqa: E402
-
+from _report_body import BODY
 
 if __name__ == "__main__":
     main()

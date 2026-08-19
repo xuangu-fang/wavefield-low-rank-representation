@@ -340,6 +340,58 @@ def figure_multicarrier() -> None:
     plt.close(fig)
 
 
+def figure_estimated_carriers() -> None:
+    payload = load("exp12_estimated_carriers.json")
+    if not payload:
+        return
+    rows = payload["rows"]
+    order = ["open_clear", "partial_clear", "closed_clear", "closed_sparse", "closed_dense"]
+    regimes = [r for r in order if any(row["regime"] == r for row in rows)]
+    methods = [
+        ("plain_lowrank_error", "plain rank-$R$", PALETTE["raw"]),
+        ("single_carrier_error", "one carrier", PALETTE["straight"]),
+        ("estimated_multicarrier_error", "estimated carriers (no geometry)", PALETTE["eikonal"]),
+        ("oracle_multicarrier_error", "oracle image sources", PALETTE["data_pick"]),
+    ]
+    fig, (bars, gaps) = plt.subplots(
+        1, 2, figsize=(10.4, 3.6), gridspec_kw={"width_ratios": [2.1, 1]}
+    )
+    positions = np.arange(len(regimes))
+    width = 0.2
+    for index, (key, label, color) in enumerate(methods):
+        values = [
+            np.mean([r[key] for r in rows if r["regime"] == regime]) for regime in regimes
+        ]
+        bars.bar(
+            positions + (index - 1.5) * width, values, width * 0.9,
+            color=color, label=label, linewidth=0,
+        )
+    bars.set_xticks(positions, [r.replace("_", "\n") for r in regimes], fontsize=8.5)
+    bars.set_ylabel("relative error at $R=24$")
+    bars.legend(fontsize=8, ncol=2)
+    bars.set_title("equal parameter budget", fontsize=9)
+
+    captured = []
+    for regime in regimes:
+        subset = [r for r in rows if r["regime"] == regime]
+        plain = np.mean([r["plain_lowrank_error"] for r in subset])
+        estimated = np.mean([r["estimated_multicarrier_error"] for r in subset])
+        oracle = np.mean([r["oracle_multicarrier_error"] for r in subset])
+        denominator = np.log(plain / oracle)
+        captured.append(
+            100.0 * np.log(plain / estimated) / denominator if denominator > 1e-9 else np.nan
+        )
+    gaps.barh(positions, captured, 0.55, color=PALETTE["eikonal"], linewidth=0)
+    gaps.axvline(100, color="#555555", lw=1.0, ls="--")
+    gaps.set_yticks(positions, [r.replace("_", ", ") for r in regimes], fontsize=8.5)
+    gaps.invert_yaxis()
+    gaps.set_xlabel("% of the oracle gain captured")
+    gaps.set_title("no geometry required", fontsize=9)
+    fig.tight_layout()
+    fig.savefig(FIGURES / "fig9_estimated_carriers.png")
+    plt.close(fig)
+
+
 def figure_fields() -> None:
     from wave_lr.fdtd import MediumSpec
     from wave_lr.fields import fdtd_case, load_well_acoustic
@@ -395,6 +447,7 @@ def main() -> None:
     figure_carrier_tolerance()
     figure_bandwidth_not_frequency()
     figure_multicarrier()
+    figure_estimated_carriers()
     figure_fields()
     print(f"figures written to {FIGURES}")
 
