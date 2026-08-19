@@ -1,5 +1,10 @@
 # 表征路线图：从显式相位到生成式 latent
 
+> **进度（2026-08-19）**：R0 与 R1 已完成并给出定量定律，R2 完成"载波库构造"但尚未验证跨介质迁移；
+> R3–R5 未启动。详见 `REPORT_ZH.md` 与 `ROADMAP.md`。R1 的 gate 已通过：
+> 可部署（非 oracle）的 eikonal 载波在独立求解器与三个公开数据集上都降低有效秩，
+> 并在稀疏传感器重建任务上带来最高 13.6× 的提升。
+
 这是一条按复杂度逐级增加的研究路线，不是要求一次全部实现。每一级只有在 representation diagnostics 和下游任务都出现增益时才晋级。
 
 ## R0：表示与指标基线
@@ -26,6 +31,9 @@ r=u e^{-i\phi_0}.
 
 Gate：估计 phase（不只 oracle）必须在独立数据上稳定降低 residual effective rank，并改善至少一个真实 completion/operator task。
 
+**已通过。**并且得到了比 gate 更强的结论：秩 = 带宽 × 延迟占据测度，收益 = 占据测度之比，
+两者都能在训练前算出。收益消失的区间也被同一公式预测（见 `THEORY_DELAY_OCCUPANCY.md`）。
+
 ## R2：稀疏多路径 mixture
 
 \[
@@ -35,6 +43,10 @@ u=\sum_{m=1}^{M}a_m e^{i\phi_m}+r.
 路径可以来自 image-source/ray candidates、局部 arrival picking 或可学习字典。低秩/稀疏约束放在 carrier coefficients，允许 residual 存在。
 
 Gate：在 direct + reflection、不同反射阶数和频率下，自动估计 mixture 超过单 carrier、普通 SVD/POD 和参数匹配 INR。
+
+**部分通过。**等参数预算下多载波优于单载波（1.41×）与 plain SVD（1.63×），
+且优势按理论预测的形状随体散射衰减；载波可以完全从数据估计（拿到 oracle 的 90–96%）。
+仍缺：跨介质/跨几何迁移，以及与参数匹配 INR 的正式对照（`exp14` 只对照了逐 case INR）。
 
 ## R3：局部、多尺度 wave atoms
 
