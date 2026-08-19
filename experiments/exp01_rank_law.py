@@ -32,15 +32,19 @@ from wave_lr.theory import (
 )
 
 RESULTS = Path(__file__).resolve().parents[1] / "results"
-ENERGY = 0.99
+ENERGY_LEVELS = (0.90, 0.99)
 SATURATION_LIMIT = 0.4  # discard cases whose rank approaches min(n_x, n_f)
 
 
-def predictors(delays: np.ndarray, energies: np.ndarray, bandwidth: float) -> dict[str, float]:
+def predictors(
+    delays: np.ndarray, energies: np.ndarray, bandwidth: float, level: float
+) -> dict[str, float]:
     return {
         "support": pooled_support(delays),
         "union": union_of_ranges(delays, axis=0),
-        "occupancy": delay_occupancy(delays, energies, bandwidth=bandwidth),
+        "occupancy": delay_occupancy(
+            delays, energies, bandwidth=bandwidth, energy_fraction=level
+        ),
     }
 
 
@@ -56,8 +60,8 @@ def run_case(bandwidth: float, n_paths: int, absolute: float, spread: float, see
         delay_spread=spread,
         seed=seed,
     )
-    carrier = 2.0 * np.pi * mp.frequencies[None, :] * mp.first_arrival[:, None]
-    residual = demodulate(mp.field, carrier)
+    phase = -2.0 * np.pi * mp.frequencies[None, :] * mp.first_arrival[:, None]
+    residual = demodulate(mp.field, phase)
     energies = mp.amplitudes**2
     relative = mp.delays - mp.first_arrival[:, None]
 
@@ -67,18 +71,22 @@ def run_case(bandwidth: float, n_paths: int, absolute: float, spread: float, see
         "absolute_spread": absolute,
         "delay_spread": spread,
         "seed": seed,
-        "measured_raw_rank": effective_rank(mp.field, energy=ENERGY),
-        "measured_demodulated_rank": effective_rank(residual, energy=ENERGY),
         "grid": min(n_x, n_f),
     }
-    for name, value in predictors(mp.delays, energies, bandwidth).items():
-        row[f"raw_{name}"] = value
-        row[f"raw_{name}_pred"] = predicted_rank(bandwidth, value)
-    for name, value in predictors(relative, energies, bandwidth).items():
-        row[f"demod_{name}"] = value
-        row[f"demod_{name}_pred"] = predicted_rank(bandwidth, value)
-    row["measured_gain"] = row["measured_raw_rank"] / max(row["measured_demodulated_rank"], 1)
-    row["predicted_gain_occupancy"] = row["raw_occupancy_pred"] / row["demod_occupancy_pred"]
+    for level in ENERGY_LEVELS:
+        tag = int(level * 100)
+        row[f"measured_raw_rank_{tag}"] = effective_rank(mp.field, energy=level)
+        row[f"measured_demodulated_rank_{tag}"] = effective_rank(residual, energy=level)
+        for name, value in predictors(mp.delays, energies, bandwidth, level).items():
+            row[f"raw_{name}_{tag}"] = value
+        for name, value in predictors(relative, energies, bandwidth, level).items():
+            row[f"demod_{name}_{tag}"] = value
+        row[f"measured_gain_{tag}"] = row[f"measured_raw_rank_{tag}"] / max(
+            row[f"measured_demodulated_rank_{tag}"], 1
+        )
+        row[f"predicted_gain_{tag}"] = predicted_rank(
+            bandwidth, row[f"raw_occupancy_{tag}"]
+        ) / predicted_rank(bandwidth, row[f"demod_occupancy_{tag}"])
     return row
 
 
@@ -97,27 +105,29 @@ def main() -> None:
         rows.append(run_case(bandwidth, n_paths, absolute, spread, seed=n_paths))
 
     unsaturated = [
-        r for r in rows if r["measured_raw_rank"] < SATURATION_LIMIT * r["grid"]
+        r for r in rows if r["measured_raw_rank_99"] < SATURATION_LIMIT * r["grid"]
     ]
     fits = {}
-    for stage in ("raw", "demod"):
-        measured = np.array(
-            [r[f"measured_{'raw' if stage == 'raw' else 'demodulated'}_rank"] for r in unsaturated],
-            dtype=float,
-        )
-        for name in ("support", "union", "occupancy"):
-            fits[f"{stage}_{name}"] = fit_slope(
-                np.array([r[f"{stage}_{name}"] * r["bandwidth"] for r in unsaturated]), measured
+    gain_fit = {}
+    for level in ENERGY_LEVELS:
+        tag = int(level * 100)
+        for stage, key in (("raw", "raw"), ("demod", "demodulated")):
+            measured = np.array(
+                [r[f"measured_{key}_rank_{tag}"] for r in unsaturated], dtype=float
             )
-
-    gain_fit = fit_slope(
-        np.array([r["predicted_gain_occupancy"] for r in unsaturated]),
-        np.array([r["measured_gain"] for r in unsaturated], dtype=float),
-    )
+            for name in ("support", "union", "occupancy"):
+                fits[f"{stage}_{name}_{tag}"] = fit_slope(
+                    np.array([r[f"{stage}_{name}_{tag}"] * r["bandwidth"] for r in unsaturated]),
+                    measured,
+                )
+        gain_fit[f"gain_{tag}"] = fit_slope(
+            np.array([r[f"predicted_gain_{tag}"] for r in unsaturated]),
+            np.array([r[f"measured_gain_{tag}"] for r in unsaturated], dtype=float),
+        )
 
     payload = {
         "purpose": "falsification test of the delay-occupancy rank law",
-        "energy_level": ENERGY,
+        "energy_levels": ENERGY_LEVELS,
         "n_cases": len(rows),
         "n_unsaturated": len(unsaturated),
         "fits_rank_vs_bandwidth_times_measure": fits,

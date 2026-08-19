@@ -90,6 +90,7 @@ def make_multipath_field(
     )
     amplitudes = amplitudes / (1.0 + 0.5 * first)[:, None]
 
-    phase = 2.0 * np.pi * frequencies[None, :, None] * delays[:, None, :]
+    # NumPy transform convention: an arrival at tau carries exp(-2 pi i f tau).
+    phase = -2.0 * np.pi * frequencies[None, :, None] * delays[:, None, :]
     field = np.sum(amplitudes[:, None, :] * np.exp(1j * phase), axis=2)
     return MultipathField(field, delays, amplitudes, frequencies)

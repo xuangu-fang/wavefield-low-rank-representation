@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
-_GPU_MIN_ELEMENTS = 4_000_000
+_GPU_MIN_ELEMENTS = 250_000
 
 
 def svdvals(matrix: ArrayLike, use_gpu: bool | None = None) -> NDArray[np.float64]:

@@ -24,19 +24,32 @@ from numpy.typing import ArrayLike, NDArray
 _OVERSAMPLE = 8
 
 
+def _quantile_support(density: NDArray[np.float64], step: float, fraction: float) -> float:
+    """Smallest total measure of bins holding ``fraction`` of the energy."""
+
+    total = float(density.sum())
+    if total <= 0:
+        return 0.0
+    ordered = np.sort(density)[::-1]
+    cumulative = np.cumsum(ordered) / total
+    count = int(np.searchsorted(cumulative, fraction) + 1)
+    return float(min(count, density.size) * step)
+
+
 def delay_occupancy(
     delays: ArrayLike,
     energies: ArrayLike | None = None,
     bandwidth: float = 1.0,
-    threshold: float = 1e-3,
+    energy_fraction: float = 0.99,
 ) -> float:
     """Bandwidth-resolved Lebesgue measure of the occupied delay set.
 
     ``delays`` holds arrival times (any shape) and ``energies`` their squared
     amplitudes. Arrivals closer than the resolution ``1 / bandwidth`` cannot be
     told apart by a band-limited measurement, so the occupancy is computed
-    after smoothing with a kernel of that width. ``threshold`` is the fraction
-    of the peak energy density below which a delay counts as empty.
+    after smoothing with a kernel of that width. The occupied set is then the
+    *smallest* delay set holding ``energy_fraction`` of the energy, which makes
+    the measure directly comparable to an energy-truncated numerical rank.
     """
 
     tau = np.asarray(delays, dtype=float).ravel()
@@ -54,19 +67,15 @@ def delay_occupancy(
     lo, hi = tau.min() - 2.0 * resolution, tau.max() + 2.0 * resolution
     n_bins = max(int(np.ceil((hi - lo) / step)), 4)
     density, _ = np.histogram(tau, bins=n_bins, range=(lo, hi), weights=weight)
-    kernel = np.ones(_OVERSAMPLE)
-    smoothed = np.convolve(density, kernel, mode="same")
-    peak = smoothed.max()
-    if peak <= 0:
-        return 0.0
-    return float(np.count_nonzero(smoothed > threshold * peak) * step)
+    smoothed = np.convolve(density, np.ones(_OVERSAMPLE), mode="same")
+    return _quantile_support(smoothed, step, energy_fraction)
 
 
 def occupancy_from_traces(
     traces: ArrayLike,
     dt: float,
     bandwidth: float,
-    threshold: float = 1e-3,
+    energy_fraction: float = 0.99,
 ) -> float:
     """Delay occupancy read directly off time-domain traces ``(n_x, n_t)``.
 
@@ -78,14 +87,9 @@ def occupancy_from_traces(
     if data.ndim != 2:
         raise ValueError("traces must be (n_x, n_t)")
     energy = (data**2).sum(axis=0)
-    resolution = 1.0 / float(bandwidth)
-    width = max(int(round(resolution / dt)), 1)
-    kernel = np.ones(width) / width
-    smoothed = np.convolve(energy, kernel, mode="same")
-    peak = smoothed.max()
-    if peak <= 0:
-        return 0.0
-    return float(np.count_nonzero(smoothed > threshold * peak) * dt)
+    width = max(int(round(1.0 / (float(bandwidth) * dt))), 1)
+    smoothed = np.convolve(energy, np.ones(width), mode="same")
+    return _quantile_support(smoothed, dt, energy_fraction)
 
 
 def predicted_rank(bandwidth: float, occupancy: float, offset: float = 1.0) -> float:

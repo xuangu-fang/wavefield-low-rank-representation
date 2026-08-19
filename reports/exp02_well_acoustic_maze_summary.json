@@ -1,0 +1,49 @@
+{
+  "dataset": "well_acoustic_maze",
+  "n_cases": 4,
+  "n_rows": 20,
+  "fits": {
+    "rank_vs_occupancy_raw": {
+      "slope": 0.8569019043497829,
+      "intercept": -0.2569132247950473,
+      "r2": 0.9273713309073612,
+      "median_abs_rel_error": 0.08231423581690037
+    },
+    "rank_vs_occupancy_eikonal": {
+      "slope": 0.8407086785902435,
+      "intercept": 0.04774366688586042,
+      "r2": 0.9273715388611468,
+      "median_abs_rel_error": 0.08961275449606403
+    },
+    "rank_vs_occupancy_straight": {
+      "slope": 0.8518524896837332,
+      "intercept": -0.2032509848035923,
+      "r2": 0.9243396482554903,
+      "median_abs_rel_error": 0.09654493261361094
+    },
+    "rank_vs_occupancy_data_pick": {
+      "slope": 0.8465455091936567,
+      "intercept": -0.026630253110534303,
+      "r2": 0.9248389190823176,
+      "median_abs_rel_error": 0.09383874013584984
+    },
+    "gain_eikonal": {
+      "slope": 1.7895072351252117,
+      "intercept": -0.7943429214541489,
+      "r2": 0.29996674740795626,
+      "median_abs_rel_error": 0.010997325526096113
+    },
+    "gain_straight": {
+      "slope": 0.3980974675716028,
+      "intercept": 0.6109783562890798,
+      "r2": 0.004555695489478762,
+      "median_abs_rel_error": 0.01223210048824519
+    },
+    "gain_data_pick": {
+      "slope": 0.7411986988036956,
+      "intercept": 0.25946038273049826,
+      "r2": 0.07103048380517007,
+      "median_abs_rel_error": 0.004756755314752503
+    }
+  }
+}
