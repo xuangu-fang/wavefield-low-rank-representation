@@ -28,6 +28,7 @@ BODY = """
     <li><a href="#c9"><span class="n">09</span><span>公开数据</span></a></li>
     <li><a href="#c10"><span class="n">10</span><span>负结果</span></a></li>
     <li><a href="#c11"><span class="n">11</span><span>理论补丁</span></a></li>
+    <li><a href="#c115"><span class="n">11b</span><span>算子学习（弱）</span></a></li>
     <li><a href="#c12"><span class="n">12</span><span>下一步</span></a></li>
   </ol>
 </nav>
@@ -357,6 +358,28 @@ BODY = """
   它不会高估收益。</p>
 </section>
 
+<section id="c115">
+  <h2><span class="n">11b / 弱结果</span>跨介质算子学习：一个诚实的未完成项</h2>
+  <p class="lede">第 6b 节的网络是逐 case 拟合的隐式表示。为了检验"跨 case 预训练的算子是否也受益于对齐"，
+  用同一个 FNO、同一批介质、同一预算，分别预测复场与对齐后的包络（载波在测试时由 <code>c(x)</code>
+  重新算出，两条路线都可部署）。介质族是单个随机圆形夹杂，448 训练 / 64 测试。</p>
+  <div class="tablewrap"><table>
+    <caption>训练误差随容量下降而测试误差上升——明确的数据受限过拟合。</caption>
+    <thead><tr><th class="num">FNO 谱模态</th><th class="num">参数量</th><th class="num">raw 目标</th><th class="num">对齐目标</th><th class="num">倍数</th><th class="num">raw 训练 loss</th></tr></thead>
+    <tbody>
+      <tr><td class="num">8</td><td class="num">0.53M</td><td class="num">0.784</td><td class="num win">0.695</td><td class="num">1.13×</td><td class="num">0.526</td></tr>
+      <tr><td class="num">16</td><td class="num">2.10M</td><td class="num bad">1.002</td><td class="num win">0.794</td><td class="num">1.26×</td><td class="num">0.206</td></tr>
+      <tr><td class="num">24</td><td class="num">4.73M</td><td class="num bad">1.031</td><td class="num win">0.840</td><td class="num">1.23×</td><td class="num">0.110</td></tr>
+      <tr><td class="num">32</td><td class="num">8.40M</td><td class="num bad">1.047</td><td class="num win">0.874</td><td class="num">1.20×</td><td class="num">0.079</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout"><div class="hd">这一节不能用来支持主张</div>
+    <p>对齐目标在每一个容量档上都更好（1.13–1.26×），但<strong>两者都没有把任务做出来</strong>
+    （中位 test NRMSE 0.36–0.45）。这只支持一个弱得多的版本：在同等（不足的）数据下，
+    对齐目标一致地更容易学。要变成真结论需要数量级更多的训练介质——
+    <strong>这是目前最清楚的一个待办项。</strong></p></div>
+</section>
+
 <section id="c12">
   <h2><span class="n">12 / 下一步</span>按优先级</h2>
   <ol class="steps">
@@ -366,6 +389,8 @@ BODY = """
       需要一个可引用的公开开放介质数据（WaveBench 的部分任务，或官方配对的 OpenFWI 文件）。</li>
     <li><strong>色散推广。</strong>把载波从 <code>2πfτ</code> 推广到一般 <code>φ(x,f)</code>（局部相位斜率估计）——
       这是 staircase 的失败给出的明确方向。</li>
+    <li><strong>把算子学习做成真结论。</strong>目前 448 个训练介质远远不够，
+      两种目标都没解出任务；需要数量级更多的介质，才能判断对齐是否真的改善算子学习。</li>
     <li><strong>接生成式残差。</strong>在 <code>Λ<sub>rel</sub></code> 大的区间低秩必然不够，
       此时按 APEX 路线把对齐后的 residual 交给 flow / diffusion。
       定律正好指出"什么时候必须上生成模型"。</li>
