@@ -5,8 +5,12 @@ from __future__ import annotations
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
+from .linalg import svdvals
 
-def singular_spectrum(array: ArrayLike, split_axis: int = 1) -> NDArray[np.float64]:
+
+def singular_spectrum(
+    array: ArrayLike, split_axis: int = 1, use_gpu: bool | None = None
+) -> NDArray[np.float64]:
     """Return normalized singular values of one tensor unfolding.
 
     Axes before ``split_axis`` form rows and remaining axes form columns.
@@ -17,7 +21,7 @@ def singular_spectrum(array: ArrayLike, split_axis: int = 1) -> NDArray[np.float
         raise ValueError("split_axis must lie strictly inside the array dimensions")
     rows = int(np.prod(value.shape[:split_axis]))
     matrix = value.reshape(rows, -1)
-    spectrum = np.linalg.svd(matrix, compute_uv=False)
+    spectrum = svdvals(matrix, use_gpu=use_gpu)
     norm = np.linalg.norm(spectrum)
     return spectrum / norm if norm > 0 else spectrum.astype(np.float64)
 

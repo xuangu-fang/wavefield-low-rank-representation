@@ -1,0 +1,51 @@
+{
+  "purpose": "falsification test of the delay-occupancy rank law",
+  "energy_level": 0.99,
+  "n_cases": 420,
+  "n_unsaturated": 420,
+  "fits_rank_vs_bandwidth_times_measure": {
+    "raw_support": {
+      "slope": 0.7600878453129304,
+      "intercept": 3.1401706931682125,
+      "r2": 0.904799890320424,
+      "median_abs_rel_error": 0.14773200581997148
+    },
+    "raw_union": {
+      "slope": 0.7703235178410995,
+      "intercept": 3.3402356774215,
+      "r2": 0.9087750339304599,
+      "median_abs_rel_error": 0.13143768174856113
+    },
+    "raw_occupancy": {
+      "slope": 0.8961072723411552,
+      "intercept": 1.574419137257244,
+      "r2": 0.990424875750131,
+      "median_abs_rel_error": 0.06467063042761033
+    },
+    "demod_support": {
+      "slope": 0.3444121097913109,
+      "intercept": 1.478275486843295,
+      "r2": 0.7193456279316677,
+      "median_abs_rel_error": 0.4623946735765946
+    },
+    "demod_union": {
+      "slope": 0.3813213947899629,
+      "intercept": 2.0227601185667536,
+      "r2": 0.5947700036206307,
+      "median_abs_rel_error": 0.5665061237160772
+    },
+    "demod_occupancy": {
+      "slope": 0.8915463535116694,
+      "intercept": 0.07401223775949785,
+      "r2": 0.989483673045618,
+      "median_abs_rel_error": 0.0760589804018999
+    }
+  },
+  "fit_gain": {
+    "slope": 1.9021853698839566,
+    "intercept": -1.4771744140587806,
+    "r2": 0.9604621187557618,
+    "median_abs_rel_error": 0.21699074171007499
+  },
+  "n_rows": 420
+}
