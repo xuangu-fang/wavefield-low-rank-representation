@@ -19,7 +19,7 @@ import numpy as np
 
 from wave_lr.analysis import analyze_case
 from wave_lr.diagnostics import singular_spectrum
-from wave_lr.fields import load_well_acoustic
+from wave_lr.fields import load_well_acoustic, load_well_scattering
 from wave_lr.harmonic import load_staircase
 from wave_lr.spectra import to_spectrum
 from wave_lr.tasks import completion_curve, random_entry_mask, sensor_interpolation_report
@@ -28,6 +28,7 @@ RESULTS = Path(__file__).resolve().parents[1] / "results"
 SENSOR_FRACTIONS = (0.01, 0.02, 0.05, 0.10)
 CARRIERS = ("raw", "eikonal", "straight")
 MAZE_BAND = (3.0, 13.0)
+INCLUSION_BAND = (3.0, 13.0)
 
 
 def ranks(values: np.ndarray) -> dict:
@@ -64,6 +65,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--maze-limit", type=int, default=12)
     parser.add_argument("--subsample", type=int, default=2)
+    parser.add_argument("--inclusion-limit", type=int, default=10)
     parser.add_argument("--no-completion", action="store_true")
     args = parser.parse_args()
     completion = not args.no_completion
@@ -79,6 +81,21 @@ def main() -> None:
         rows.append(row)
         print(
             f"maze {case.name} rank {row['raw_rank_90']:3d}->{row['eikonal_rank_90']:3d} "
+            f"interp2% {row['interp_raw_p2_complex_nrmse']:.3f}->"
+            f"{row['interp_eikonal_p2_complex_nrmse']:.3f}",
+            flush=True,
+        )
+
+    for index, case in enumerate(load_well_scattering(limit=args.inclusion_limit)):
+        row = analyze_case(case, *INCLUSION_BAND)
+        spectrum = to_spectrum(case.traces, case.dt, *INCLUSION_BAND)
+        delays = {"raw": None, "eikonal": case.travel_time, "straight": case.straight_time}
+        row.update(
+            run_tasks(case.coords, spectrum.values, spectrum.frequencies, delays, index, completion)
+        )
+        rows.append(row)
+        print(
+            f"inclusions {case.name} rank {row['raw_rank_90']:3d}->{row['eikonal_rank_90']:3d} "
             f"interp2% {row['interp_raw_p2_complex_nrmse']:.3f}->"
             f"{row['interp_eikonal_p2_complex_nrmse']:.3f}",
             flush=True,

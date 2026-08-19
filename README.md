@@ -8,6 +8,17 @@
 
 本仓库不再承诺“一个张量分解直接解决复杂波场”。它研究的是更基础的问题：复杂复数波场应该用什么坐标和中间表示，才能让后续的 completion、operator learning、跨频预测、反演或生成建模更容易。
 
+## 当前主线（2026-08-19 起）
+
+主攻方向是 **延迟占据（delay occupancy）秩定律**：复波场 `(x,f)` 展开的数值秩由
+**带宽 × 到达时间占据测度** 决定，相位解调的收益等于绝对占据与相对占据之比，
+且该比值在训练任何模型之前就能从 `c(x)` 与记录道算出。
+
+- 理论与最终表述：`docs/THEORY_DELAY_OCCUPANCY.md`
+- 立项时的原始假设（保留未改）：`docs/PROPOSAL_DELAY_SPREAD_ZH.md`
+- 实验结果与结论：`docs/REPORT.md`
+- 数据完整性发现（含本地 OpenFWI 配对错误）：`docs/DATA_INTEGRITY.md`
+
 ## 当前定位
 
 - **长期研究基础设施，不绑定近期投稿。** 后续可以逐步接收新的波动研究和想法。
@@ -52,6 +63,22 @@ python -m venv .venv
 ```
 
 该 sanity 只验证“oracle phase 解调能否揭示低秩”，不是模型结果，也不能作为论文证据。
+
+## 复现主线实验
+
+```bash
+.venv/bin/python experiments/exp01_rank_law.py                 # 合成场上的定律证伪测试
+.venv/bin/python experiments/exp03_regime_phase_diagram.py     # FDTD 区间相图
+.venv/bin/python experiments/exp05_task_gain_vs_regime.py --completion
+.venv/bin/python experiments/exp06_public_data_tasks.py        # 公开数据上的同一套任务
+.venv/bin/python experiments/exp07_carrier_error_tolerance.py  # 载波精度容限
+.venv/bin/python experiments/exp08_bandwidth_not_frequency.py  # 秩由带宽而非中心频率决定
+.venv/bin/python experiments/collect_summary.py                # 汇总到 reports/summary.json
+.venv/bin/python experiments/make_figures.py                   # 生成 reports/figures/
+```
+
+大文件全部位于 NFS（见 `docs/DATASETS_AND_PROTOCOLS.md`）；仓库只保存 `reports/` 下的
+小结与图。
 
 ## 与中央研究 Hub 的关系
 

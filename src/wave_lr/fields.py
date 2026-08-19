@@ -212,3 +212,81 @@ def fdtd_case(
             "duration": duration,
         },
     )
+
+
+WELL_SCATTERING = Path(
+    "/mnt/data/xuangu-fang/physics-informed-tensor-learning/datasets/wavefield_lr/raw"
+)
+
+
+def load_well_scattering(
+    variant: str = "acoustic_inclusions",
+    chunk: str = "chunk_36.hdf5",
+    limit: int = 12,
+    stride: int = 2,
+    wall_fraction: float = 0.05,
+) -> list[WaveCase]:
+    """Full-resolution Well acoustic scattering fields straight from HDF5.
+
+    Unlike the locally cached 64x64 maze, these are 256x256 with two absorbing
+    and two reflecting sides, which places them between the open and closed
+    ends of the regime sweep. ``stride`` subsamples the spatial grid for the
+    diagnostics; the time axis is always kept in full.
+    """
+
+    import h5py
+
+    path = WELL_SCATTERING / variant / chunk
+    cases = []
+    with h5py.File(path, "r") as handle:
+        times = handle["dimensions/time"][:]
+        axis = handle["dimensions/x"][:]
+        spacing = float(axis[1] - axis[0])
+        dt = float(times[1] - times[0])
+        for index in range(min(limit, handle["t0_fields/pressure"].shape[0])):
+            pressure = np.asarray(
+                handle["t0_fields/pressure"][index], dtype=np.float64
+            )  # (n_t, n_r, n_c)
+            speed = np.asarray(
+                handle["t0_fields/speed_of_sound"][index], dtype=np.float64
+            )
+            first = np.abs(pressure[0])
+            source_mask = first > 0.05 * first.max()
+            fluid = speed > wall_fraction * speed.max()
+
+            tau = batched_travel_time(
+                speed[None], source_mask[None], spacing=spacing,
+                iterations=6 * speed.shape[0],
+            )[0]
+            coords = _grid_coords(*speed.shape, spacing)
+            source_xy = coords.reshape(*speed.shape, 2)[source_mask]
+            distance = np.min(
+                np.linalg.norm(coords[:, None, :] - source_xy[None, :, :], axis=2), axis=1
+            )
+            keep = fluid.ravel()
+            if stride > 1:
+                grid = np.zeros(speed.shape, dtype=bool)
+                grid[::stride, ::stride] = True
+                keep = keep & grid.ravel()
+            reference_speed = float(np.median(speed[fluid]))
+
+            cases.append(
+                WaveCase(
+                    name=f"{variant}_{index:03d}",
+                    dataset=variant,
+                    traces=pressure.reshape(len(times), -1).T[keep],
+                    dt=dt,
+                    coords=coords[keep],
+                    travel_time=tau.ravel()[keep],
+                    straight_time=(distance / reference_speed)[keep],
+                    metadata={
+                        "spacing": spacing,
+                        "reference_speed": reference_speed,
+                        "source_cells": int(source_mask.sum()),
+                        "slow_fraction": float(1.0 - fluid.mean()),
+                        "grid": list(speed.shape),
+                        "stride": stride,
+                    },
+                )
+            )
+    return cases
