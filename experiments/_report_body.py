@@ -22,6 +22,7 @@ BODY = """
     <li><a href="#c4"><span class="n">04</span><span>区间相图</span></a></li>
     <li><a href="#c5"><span class="n">05</span><span>任务收益</span></a></li>
     <li><a href="#c6"><span class="n">06</span><span>载波要多准</span></a></li>
+    <li><a href="#c65"><span class="n">06b</span><span>网络不能替代</span></a></li>
     <li><a href="#c7"><span class="n">07</span><span>免费选载波</span></a></li>
     <li><a href="#c8"><span class="n">08</span><span>多载波方法</span></a></li>
     <li><a href="#c9"><span class="n">09</span><span>公开数据</span></a></li>
@@ -153,6 +154,43 @@ BODY = """
     这解释了为什么 eikonal 求解器 1–3% 的离散偏差不会破坏方法。</p></div>
   <figure><img src="{{FIG3}}" alt="载波误差容限曲线，粗糙误差在 1/B 处越过基线">
     <figcaption><b>图 7.</b> 红色虚线为 <code>δτ=1/B</code>；灰点线为原始场基线。左右两图的差别就是"粗糙"与"平滑"的差别。</figcaption>
+  </figure>
+</section>
+
+<section id="c65">
+  <h2><span class="n">06b / 证据五之二</span>Fourier features 和 SIREN 不能替代载波</h2>
+  <p class="lede">对一个机器学习场地的第一反问一定是"随便一个 Fourier-feature INR 或 SIREN
+  不就把振荡学会了？"这里把它做成对照：同样的传感器、同样的架构与预算，唯一变量是网络预测
+  <strong>原始场</strong>还是<strong>对齐后的包络</strong>。Fourier 带宽扫 {4, 16, 64} 并取<em>最好</em>的一档，
+  比较对 baseline 有利。</p>
+  <div class="tablewrap"><table>
+    <caption>隐藏位置上的复数 NRMSE。1.0 = 零预测。</caption>
+    <thead><tr><th>2% 传感器</th><th class="num">open, clear</th><th class="num">open, sparse</th><th class="num">partial, clear</th><th class="num">closed, dense</th></tr></thead>
+    <tbody>
+      <tr><td>网络（原始场，最好设置）</td><td class="num bad">0.98</td><td class="num bad">0.98</td><td class="num bad">0.98</td><td class="num bad">0.99</td></tr>
+      <tr><td>网络（对齐场）</td><td class="num">0.36</td><td class="num">0.84</td><td class="num">0.82</td><td class="num">0.99</td></tr>
+      <tr><td>线性插值（原始场）</td><td class="num bad">1.09</td><td class="num bad">1.10</td><td class="num bad">1.09</td><td class="num bad">1.14</td></tr>
+      <tr><td>线性插值（对齐场）</td><td class="num win">0.084</td><td class="num">0.75</td><td class="num">0.83</td><td class="num">1.06</td></tr>
+    </tbody>
+  </table></div>
+  <div class="tablewrap"><table>
+    <thead><tr><th>10% 传感器</th><th class="num">open, clear</th><th class="num">open, sparse</th><th class="num">partial, clear</th><th class="num">closed, dense</th></tr></thead>
+    <tbody>
+      <tr><td>网络（原始场，最好设置）</td><td class="num bad">0.82</td><td class="num bad">0.93</td><td class="num bad">0.92</td><td class="num bad">1.09</td></tr>
+      <tr><td>网络（对齐场）</td><td class="num">0.27</td><td class="num">0.79</td><td class="num">0.82</td><td class="num bad">1.12</td></tr>
+      <tr><td>线性插值（对齐场）</td><td class="num win">0.046</td><td class="num">0.56</td><td class="num">0.61</td><td class="num">0.85</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout"><div class="hd">训练误差才是关键诊断</div>
+    <p>所有网络的<strong>训练</strong> NRMSE 是 0.000–0.015，<strong>测试</strong> NRMSE 是 0.75–1.28。
+    网络把传感器拟合到几乎精确，仍然填不出中间——这正是旧 Track 2 审计里记录的病理。
+    原因现在清楚了：在低于空间 Nyquist 的采样下，原始场在传感器之间<strong>根本不可辨识</strong>；
+    载波把这部分信息从 <code>c(x)</code> 补进来，所以才可解。</p></div>
+  <p><strong>表征对了之后，一个线性插值器比训练过的网络还好 5–17×。容量替代不了坐标。</strong>
+  必须声明的局限：这里的网络是逐 case 拟合的隐式表示，不是跨 case 预训练的算子；
+  本实验只否证"通用坐标编码可以替代物理载波"这一条。</p>
+  <figure><img src="{{FIG10}}" alt="四个区间下网络与插值、原始与对齐的四条曲线，两种传感器密度">
+    <figcaption><b>图 10.</b> 原始场上的网络（红）在两种传感器密度、所有区间下都停在零预测水平附近。</figcaption>
   </figure>
 </section>
 

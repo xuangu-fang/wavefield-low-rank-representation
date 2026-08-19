@@ -227,6 +227,7 @@ FIGURE_SLOTS = {
     "{{FIG7}}": "fig7_bandwidth_not_frequency.png",
     "{{FIG8}}": "fig8_multicarrier.png",
     "{{FIG9}}": "fig9_estimated_carriers.png",
+    "{{FIG10}}": "fig10_learned_baselines.png",
 }
 
 from _report_body import BODY

@@ -392,6 +392,42 @@ def figure_estimated_carriers() -> None:
     plt.close(fig)
 
 
+def figure_learned_baselines() -> None:
+    panels = []
+    for fraction in (2, 10):
+        payload = load(f"exp14_learned_baselines_p{fraction}.json")
+        if payload:
+            panels.append((fraction, payload["rows"]))
+    if not panels:
+        return
+    order = ["open_clear", "open_sparse", "partial_clear", "closed_dense"]
+    series = [
+        ("best_network_raw", "network, raw field", PALETTE["raw"], "o-"),
+        ("best_network_aligned", "network, aligned", PALETTE["straight"], "s-"),
+        ("interp_raw", "interpolation, raw", "#9AA5B1", "o--"),
+        ("interp_aligned", "interpolation, aligned", PALETTE["eikonal"], "s--"),
+    ]
+    fig, axes = plt.subplots(1, len(panels), figsize=(4.9 * len(panels), 3.5), sharey=True)
+    axes = np.atleast_1d(axes)
+    for axis, (fraction, rows) in zip(axes, panels):
+        regimes = [r for r in order if any(row["regime"] == r for row in rows)]
+        positions = np.arange(len(regimes))
+        for key, label, color, style in series:
+            values = [
+                np.mean([r[key] for r in rows if r["regime"] == regime]) for regime in regimes
+            ]
+            axis.plot(positions, values, style, color=color, ms=5, lw=1.5, label=label)
+        axis.axhline(1.0, color="#666666", lw=0.9, ls=":")
+        axis.set_yscale("log")
+        axis.set_xticks(positions, [r.replace("_", ",\n") for r in regimes], fontsize=8.5)
+        axis.set_title(f"{fraction}% of locations observed", fontsize=9)
+    axes[0].set_ylabel("complex NRMSE on hidden locations")
+    axes[0].legend(fontsize=8, loc="lower right")
+    fig.tight_layout()
+    fig.savefig(FIGURES / "fig10_learned_baselines.png")
+    plt.close(fig)
+
+
 def figure_fields() -> None:
     from wave_lr.fdtd import MediumSpec
     from wave_lr.fields import fdtd_case, load_well_acoustic
@@ -448,6 +484,7 @@ def main() -> None:
     figure_bandwidth_not_frequency()
     figure_multicarrier()
     figure_estimated_carriers()
+    figure_learned_baselines()
     figure_fields()
     print(f"figures written to {FIGURES}")
 
