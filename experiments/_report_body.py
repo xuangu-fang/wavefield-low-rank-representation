@@ -264,6 +264,24 @@ BODY = """
   </table></div>
   <p>逐项低秩补全从 0.992 提升到 <strong>0.813</strong>（原始场基本等于零预测）。
   test split 的 3 条轨迹共用同一个源位置，所以逐源统计用的是 train split。</p>
+
+  <h3>9.1&nbsp;&nbsp;等预算压缩：公开数据上最强的一组数字</h3>
+  <p>上表衡量的是稀疏重建任务。若直接问"同样的参数预算下，表征能把场压到多小"，
+  公开数据给出的差距要大得多。载波用的是可部署的 eikonal 走时，不是 oracle。</p>
+  <div class="tablewrap"><table>
+    <caption>等参数预算下的相对逼近误差。多载波流程在这两个公开集上几乎总是自动停在 M=1。</caption>
+    <thead><tr><th>数据集</th><th class="num">n</th><th class="num">预算 R</th><th class="num">plain rank-R</th><th class="num">单载波</th><th class="num">倍数</th><th class="num">估计多载波</th></tr></thead>
+    <tbody>
+      <tr><td>Helmholtz staircase</td><td class="num">8</td><td class="num">4</td><td class="num">0.2606</td><td class="num win">0.0288</td><td class="num win">9.8×</td><td class="num">0.0275</td></tr>
+      <tr><td>Helmholtz staircase</td><td class="num">8</td><td class="num">8</td><td class="num">0.0212</td><td class="num win">0.0019</td><td class="num win">11.5×</td><td class="num">0.0019</td></tr>
+      <tr><td>acoustic inclusions</td><td class="num">6</td><td class="num">8</td><td class="num">0.2750</td><td class="num">0.2416</td><td class="num">1.13×</td><td class="num">0.2572</td></tr>
+      <tr><td>acoustic inclusions</td><td class="num">6</td><td class="num">16</td><td class="num">0.0765</td><td class="num">0.0636</td><td class="num">1.22×</td><td class="num">0.0637</td></tr>
+    </tbody>
+  </table></div>
+  <p><strong>staircase 上一个可部署的单载波把等预算逼近误差降了一个数量级</strong>——比稀疏重建任务上的
+  1.7–2.1× 大得多，因为重建任务还受采样几何限制，而压缩只受表征本身限制。
+  inclusions 的占据比在 0.71–0.94 之间（预测 ~1.1× 收益），实测 1.13–1.22×，
+  个别 case 略低于 1；在收益≈1 的区间出现正负抖动是预期内的。</p>
   <div class="callout"><div class="hd">对社区有用的观察</div>
     <p>主流公开波动 benchmark 绝大多数落在<strong>混响区间</strong>，而这恰恰是相位对齐类方法必然失效的区间。
     这解释了这类方法在 benchmark 上长期让人失望的历史，也说明 benchmark 覆盖存在系统性缺口——

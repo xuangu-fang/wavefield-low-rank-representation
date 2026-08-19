@@ -180,9 +180,19 @@ def fit_multicarrier_als(
     factor_b = torch.empty((n_carriers, n_f, rank), dtype=torch.complex64, device=device)
     for index in range(n_carriers):
         aligned = data * carriers[index].conj()
-        _, values, right = torch.svd_lowrank(aligned, q=min(rank + 4, min(aligned.shape)))
+        try:
+            _, values, right = torch.svd_lowrank(
+                aligned, q=min(rank + 4, min(aligned.shape))
+            )
+            right = right[:, :rank]
+        except torch._C._LinAlgError:
+            # Randomised range finding can fail on nearly rank-deficient blocks;
+            # the exact factorisation is affordable whenever n_f is small.
+            _, values, right_h = torch.linalg.svd(aligned.cdouble(), full_matrices=False)
+            values = values.to(torch.float32)
+            right = right_h.conj().transpose(0, 1)[:, :rank].to(torch.complex64)
         weights = torch.sqrt(values[:rank] / n_carriers)
-        factor_b[index] = right[:, :rank] * weights
+        factor_b[index] = right * weights
     jitter = (
         torch.randn((n_carriers, n_f, rank), generator=generator)
         + 1j * torch.randn((n_carriers, n_f, rank), generator=generator)
@@ -356,6 +366,7 @@ def estimate_carriers(
     objective: str = "stack",
     budget: int = 24,
     tolerance: float = 0.995,
+    compute_occupancy: bool = True,
 ) -> tuple[NDArray[np.float64], list[dict]]:
     """Grow a carrier bank from the data alone, one arrival at a time.
 
@@ -374,6 +385,8 @@ def estimate_carriers(
         raise ValueError("coords are required to fit virtual sources")
 
     def occupancy_of(values: NDArray[np.complex128], tau: NDArray[np.float64]) -> float:
+        if not compute_occupancy:
+            return float("nan")
         block = Spectrum(values, spectrum.frequencies, spectrum.dt, spectrum.n_padded)
         traces, _ = band_limited_traces(shift_spectrum(block, tau - tau.max()))
         return occupancy_from_traces(traces, spectrum.dt, spectrum.bandwidth)
@@ -383,6 +396,11 @@ def estimate_carriers(
             residual, spectrum.frequencies, coords, speed=speed, objective=objective
         )
         distance = np.linalg.norm(coords - position, axis=1) / speed
+        if not compute_occupancy:
+            # Without a uniform frequency grid there is no envelope to pick a
+            # time offset from; a constant offset is a global phase and does
+            # not change the model's span, so zero is as good as any.
+            return distance, {"virtual_source": position.tolist(), "stack_power": power}
         block = Spectrum(residual, spectrum.frequencies, spectrum.dt, spectrum.n_padded)
         traces, times = band_limited_traces(shift_spectrum(block, distance - distance.max()))
         picked, amplitude = _pick_peak_times(traces, times)
