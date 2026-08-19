@@ -288,6 +288,52 @@ def figure_bandwidth_not_frequency() -> None:
     plt.close(fig)
 
 
+def figure_multicarrier() -> None:
+    payload = load("exp09_multicarrier.json")
+    if not payload:
+        return
+    rows = [r for r in payload["rows"] if "budget_rank" in r]
+    if not rows:
+        return
+    regimes = ["open_clear", "partial_clear", "closed_clear", "closed_dense"]
+    budgets = payload["budgets"]
+    fig, axes = plt.subplots(1, len(regimes), figsize=(3.0 * len(regimes), 3.2), sharey=True)
+    for axis, regime in zip(axes, regimes):
+        series = {"svd": [], "carrier1": [], "multi": []}
+        for budget in budgets:
+            subset = [r for r in rows if r["regime"] == regime and r["budget_rank"] == budget]
+            if not subset:
+                continue
+            series["svd"].append(np.mean([r["svd_error"] for r in subset]))
+            series["carrier1"].append(np.mean([r["carrier1_svd_error"] for r in subset]))
+            best = [
+                min(
+                    (r[k] for k in r if k.startswith("multi") and k.endswith("_error")),
+                    default=np.nan,
+                )
+                for r in subset
+            ]
+            series["multi"].append(np.nanmean(best))
+        labels = {
+            "svd": ("plain rank-$R$ (SVD)", PALETTE["raw"]),
+            "carrier1": ("one carrier + rank-$R$", PALETTE["straight"]),
+            "multi": ("$M$ carriers, rank $R/M$", PALETTE["eikonal"]),
+        }
+        for key, values in series.items():
+            label, color = labels[key]
+            axis.plot(budgets[: len(values)], values, "o-", ms=4, lw=1.5, color=color, label=label)
+        axis.set_xscale("log")
+        axis.set_yscale("log")
+        axis.set_xticks(budgets, [str(b) for b in budgets])
+        axis.set_title(regime.replace("_", ", "), fontsize=9)
+        axis.set_xlabel("parameter budget $R$")
+    axes[0].set_ylabel("relative approximation error")
+    axes[0].legend(fontsize=7.5, loc="lower left")
+    fig.tight_layout()
+    fig.savefig(FIGURES / "fig8_multicarrier.png")
+    plt.close(fig)
+
+
 def figure_fields() -> None:
     from wave_lr.fdtd import MediumSpec
     from wave_lr.fields import fdtd_case, load_well_acoustic
@@ -342,6 +388,7 @@ def main() -> None:
     figure_task_vs_rank_gain()
     figure_carrier_tolerance()
     figure_bandwidth_not_frequency()
+    figure_multicarrier()
     figure_fields()
     print(f"figures written to {FIGURES}")
 

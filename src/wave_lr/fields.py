@@ -210,6 +210,8 @@ def fdtd_case(
             "seed": spec.seed,
             "grid": n,
             "duration": duration,
+            "source_xy": [float(row * spacing), float(col * spacing)],
+            "box": [float((n - 1) * spacing), float((n - 1) * spacing)],
         },
     )
 
