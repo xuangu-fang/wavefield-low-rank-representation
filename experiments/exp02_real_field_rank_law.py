@@ -12,8 +12,6 @@ import argparse
 import json
 from pathlib import Path
 
-import numpy as np
-
 from wave_lr.analysis import analyze_case
 from wave_lr.fields import load_openfwi, load_well_acoustic
 from wave_lr.reporting import summarize_fits

@@ -20,17 +20,16 @@ import numpy as np
 from wave_lr.diagnostics import singular_spectrum
 from wave_lr.fdtd import MediumSpec
 from wave_lr.fields import fdtd_case
-from wave_lr.spectra import carrier, to_spectrum
+from wave_lr.spectra import band_limited_traces, carrier, to_spectrum
 from wave_lr.theory import fit_slope, occupancy_from_traces
-from wave_lr.spectra import band_limited_traces
 
 RESULTS = Path(__file__).resolve().parents[1] / "results"
 CENTRES = (9.0, 12.0, 15.0, 18.0, 21.0, 24.0)
 BANDWIDTHS = (2.0, 4.0, 6.0, 9.0, 12.0)
 REGIMES = {
-    "open_clear": dict(absorption=40.0, scatterer_fraction=0.0),
-    "open_sparse": dict(absorption=40.0, scatterer_fraction=0.08),
-    "closed_dense": dict(absorption=0.0, scatterer_fraction=0.22),
+    "open_clear": {"absorption": 40.0, "scatterer_fraction": 0.0},
+    "open_sparse": {"absorption": 40.0, "scatterer_fraction": 0.08},
+    "closed_dense": {"absorption": 0.0, "scatterer_fraction": 0.22},
 }
 
 

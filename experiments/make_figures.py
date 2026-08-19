@@ -10,8 +10,8 @@ from pathlib import Path
 import matplotlib
 
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt  # noqa: E402
-import numpy as np  # noqa: E402
+import matplotlib.pyplot as plt
+import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
 RESULTS = ROOT / "results"
@@ -311,11 +311,9 @@ def figure_fields() -> None:
         raw = spectrum.values[:, index]
         aligned = raw * np.conj(carrier(spectrum.frequencies, case.travel_time))[:, index]
         span = float(np.percentile(np.abs(raw), 99.0))
-        from wave_lr.diagnostics import singular_spectrum
 
         def rank_of(values):
             values = values.reshape(-1, 1) if values.ndim == 1 else values
-            return None
         for row, (values, label) in enumerate(((raw, "raw"), (aligned, "aligned"))):
             axis = axes[row, column]
             scatter = axis.scatter(

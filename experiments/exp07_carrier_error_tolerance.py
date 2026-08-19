@@ -27,9 +27,9 @@ from wave_lr.tasks import sensor_interpolation_report
 RESULTS = Path(__file__).resolve().parents[1] / "results"
 BANDS = [(6.0, 12.0), (6.0, 24.0), (12.0, 30.0)]
 REGIMES = {
-    "open_clear": dict(absorption=40.0, scatterer_fraction=0.0),
-    "open_sparse": dict(absorption=40.0, scatterer_fraction=0.08),
-    "partial_clear": dict(absorption=3.0, scatterer_fraction=0.0),
+    "open_clear": {"absorption": 40.0, "scatterer_fraction": 0.0},
+    "open_sparse": {"absorption": 40.0, "scatterer_fraction": 0.08},
+    "partial_clear": {"absorption": 3.0, "scatterer_fraction": 0.0},
 }
 ERROR_SCALES = (0.0, 0.05, 0.1, 0.2, 0.35, 0.5, 0.75, 1.0, 1.5, 2.5)
 

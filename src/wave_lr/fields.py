@@ -175,12 +175,12 @@ def fdtd_case(
 
     speed, damping = build_medium(spec)
     n = spec.grid
-    row = int(round(source_fraction[0] * (n - 1)))
-    col = int(round(source_fraction[1] * (n - 1)))
+    row = round(source_fraction[0] * (n - 1))
+    col = round(source_fraction[1] * (n - 1))
     frames, record_dt, spacing = simulate(
         speed[None], damping[None], (row, col), peak_frequency, duration, record_every
     )
-    margin = int(round(interior_margin * n))
+    margin = round(interior_margin * n)
     interior = np.zeros((n, n), dtype=bool)
     interior[margin : n - margin, margin : n - margin] = True
 

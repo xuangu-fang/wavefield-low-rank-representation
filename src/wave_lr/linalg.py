@@ -24,6 +24,6 @@ def svdvals(matrix: ArrayLike, use_gpu: bool | None = None) -> NDArray[np.float6
                 tensor = torch.from_numpy(np.ascontiguousarray(array)).cuda()
                 values = torch.linalg.svdvals(tensor)
                 return values.double().cpu().numpy()
-        except Exception:  # pragma: no cover - falls back to CPU
+        except (ImportError, RuntimeError):  # pragma: no cover - falls back to CPU
             pass
     return np.linalg.svd(array, compute_uv=False)

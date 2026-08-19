@@ -44,7 +44,7 @@ def build_medium(spec: MediumSpec) -> tuple[NDArray[np.float64], NDArray[np.floa
 
     if spec.scatterer_fraction > 0:
         area = np.pi * spec.scatterer_radius**2
-        count = max(int(round(spec.scatterer_fraction / area)), 1)
+        count = max(round(spec.scatterer_fraction / area), 1)
         for _ in range(count):
             cx, cy = rng.uniform(0.1, 0.9, size=2)
             radius = spec.scatterer_radius * rng.uniform(0.6, 1.4)
@@ -89,10 +89,10 @@ def simulate(
     sigma = torch.as_tensor(np.asarray(dampings, dtype=np.float32), device=device)
     if c.ndim == 2:
         c, sigma = c[None], sigma[None]
-    batch, n, _ = c.shape
+    _, n, _ = c.shape
     spacing = 1.0 / (n - 1)
     dt = cfl * spacing / float(np.max(speeds))
-    n_steps = int(round(duration / dt))
+    n_steps = round(duration / dt)
     times = np.arange(n_steps) * dt
     wavelet = torch.as_tensor(ricker(times, peak_frequency).astype(np.float32), device=device)
 

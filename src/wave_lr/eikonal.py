@@ -68,8 +68,7 @@ def fast_sweeping(
                         tau[i, j + 1] if j < n_c - 1 else LARGE,
                     )
                     candidate = _godunov_update(a, b, slowness[i, j] * spacing)
-                    if candidate < tau[i, j]:
-                        tau[i, j] = candidate
+                    tau[i, j] = min(tau[i, j], candidate)
         if np.max(np.abs(tau - previous)) < tol:
             break
     return tau

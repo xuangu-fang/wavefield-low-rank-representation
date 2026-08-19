@@ -8,7 +8,7 @@ difference is therefore attributable to the representation.
 from __future__ import annotations
 
 import numpy as np
-from numpy.typing import ArrayLike, NDArray
+from numpy.typing import NDArray
 
 from .metrics import summarize
 from .spectra import carrier

@@ -16,8 +16,6 @@ import json
 import time
 from pathlib import Path
 
-import numpy as np
-
 from wave_lr.analysis import analyze_case
 from wave_lr.fdtd import MediumSpec
 from wave_lr.fields import fdtd_case

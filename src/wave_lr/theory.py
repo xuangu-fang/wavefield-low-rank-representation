@@ -87,7 +87,7 @@ def occupancy_from_traces(
     if data.ndim != 2:
         raise ValueError("traces must be (n_x, n_t)")
     energy = (data**2).sum(axis=0)
-    width = max(int(round(1.0 / (float(bandwidth) * dt))), 1)
+    width = max(round(1.0 / (float(bandwidth) * dt)), 1)
     smoothed = np.convolve(energy, np.ones(width), mode="same")
     return _quantile_support(smoothed, dt, energy_fraction)
 

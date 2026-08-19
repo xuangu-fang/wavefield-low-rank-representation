@@ -133,7 +133,7 @@ def task_table() -> dict:
             entry[f"interp_raw_{tag}"] = float(raw.mean())
             entry[f"interp_aligned_{tag}"] = float(aligned.mean())
             entry[f"interp_gain_{tag}"] = float((raw / np.maximum(aligned, 1e-9)).mean())
-        if f"complete_raw_best_complex_nrmse" in group[0]:
+        if "complete_raw_best_complex_nrmse" in group[0]:
             raw = np.array([r["complete_raw_best_complex_nrmse"] for r in group])
             aligned = np.array([r["complete_eikonal_best_complex_nrmse"] for r in group])
             entry["complete_raw"] = float(raw.mean())
