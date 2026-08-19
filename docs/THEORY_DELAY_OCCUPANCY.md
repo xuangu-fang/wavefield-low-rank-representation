@@ -1,0 +1,113 @@
+# The delay-occupancy rank law
+
+This is the refined statement after the experiments in `experiments/exp01`–`exp06`.
+The original hypothesis is kept unedited in `PROPOSAL_DELAY_SPREAD_ZH.md`; this
+note records what survived contact with data and what had to change.
+
+## 1. Setup
+
+A frequency-domain wave field is the Fourier transform of an impulse response,
+
+```
+u(x, f) = ∫ g(x, τ) e^{-2πifτ} dτ,
+```
+
+so the `(x, f)` unfolding `U` factors as `U = G F`, where `G[x, τ]` holds the
+time-domain response and `F[τ, f] = e^{-2πifτ}` is a nonuniform Fourier
+operator restricted to the observed band `B` and to the delays that carry
+energy.
+
+## 2. The law
+
+Slepian-type degree-of-freedom counting for a band-limited, time-limited
+operator gives
+
+```
+rank_ε(U)  ≲  B · Λ_B  +  O(log(1/ε) log(B Λ_B)),
+```
+
+where `Λ_B` is the **delay occupancy**: the Lebesgue measure of the delay set
+carrying the energy, measured at the resolution `1/B` that a band-limited
+observation can resolve.
+
+Two estimator choices matter and were both tested:
+
+* **Resolution.** Arrivals closer than `1/B` are indistinguishable, so the
+  delay-energy density is smoothed with a kernel of that width before the
+  measure is taken. Without this the count is wrong for sparse arrivals.
+* **Energy matching.** `Λ_B` is the *smallest* delay set holding a fraction `q`
+  of the energy, with the same `q` used for the numerical rank. A hard
+  amplitude threshold instead of an energy quantile inflates the measure by
+  chasing a negligible coda.
+
+Both choices were selected by comparison, not assumption: on 420 synthetic
+configurations the occupancy predictor reaches R²=0.998 with slope 1.01, while
+the naive support `max−min` reaches R²=0.90 and the union of per-path ranges
+R²=0.59 (`reports/summary.json`, `rank_law.synthetic_*`).
+
+## 3. What demodulation does
+
+Demodulating by `exp(-2πif τ_ref(x))` shifts each location's impulse response
+in time by `-τ_ref(x)`. It does not remove energy, and it does not change the
+field: it re-parameterises the delay axis from *absolute* arrival times to
+delays *relative* to the reference. Hence
+
+```
+predicted gain  G = (B Λ_abs + 1) / (B Λ_rel + 1).
+```
+
+`Λ_abs` is set by how far arrival times spread across space — the domain size
+over the wave speed. `Λ_rel` is the delay spread, i.e. the coda length, set by
+scattering and boundary reflections. **The gain is the ratio of the two, and
+both are computable from `c(x)` and the recorded traces before any model is
+fitted.**
+
+## 4. The correction the data forced
+
+The law is an *upper* bound, and it is tight only when the coda is spatially
+incoherent. The full statement is
+
+```
+rank_ε(U) ≲ min( B Λ_B ,  rank_ε(G) ).
+```
+
+In an open uncluttered medium the aligned response `G` is nearly rank one (one
+wavelet, one arrival, smooth amplitude), so the measured rank falls *below*
+`B Λ_rel` and the realised gain exceeds the predicted one — measured 6.0 against
+a predicted 3.0. In reverberant media the coda is diffuse, the bound is tight,
+and predicted and measured gains agree to within a few percent. The law
+therefore predicts the *regime* reliably and is conservative about the size of
+the win in the easiest regime.
+
+Fitted slopes of measured rank against `B Λ` at the 99% energy level:
+
+| data | slope | R² | rows |
+|---|---|---|---|
+| synthetic multipath | see `reports/summary.json` | | 420 configurations |
+| FDTD regime sweep | | | 12 regimes × 4 bands × 4 carriers |
+| The Well acoustic maze | | | 24 trajectories × 5 bands × 4 carriers |
+
+(The table is filled from `reports/summary.json` in `REPORT.md`.)
+
+## 5. Consequences that were tested
+
+1. **Sparse sensing.** Rank sets the sample complexity of completion, and the
+   removed phase sets the spatial bandwidth, so sensors sparser than half a
+   wavelength alias in raw coordinates but not in aligned ones.
+2. **Regime dependence.** Any carrier method must lose its advantage as
+   `Λ_rel → Λ_abs`. This is a prediction of failure, and it is the reason the
+   legacy Track 2 experiments failed on the acoustic maze.
+3. **Frequency continuation.** The same counting applies along the frequency
+   axis, but it is *not* sufficient: continuation additionally requires the
+   field to be analytic in frequency across the gap. Guided modes with cutoffs
+   break that, which is what the staircase experiment shows.
+
+## 6. What the law does not cover
+
+* **Dispersive propagation.** A carrier linear in `f` assumes a delay. Guided
+  or dispersive modes have `φ(x, f) ≠ 2πf τ(x)` and are not removed.
+* **Coherent codas.** As above, the bound is loose; the law under-predicts the
+  achievable gain in open media.
+* **Carrier error.** The bound assumes the reference delay is the true first
+  arrival. A carrier error `δτ` re-broadens the occupancy by roughly `|δτ|`,
+  so the usable gain is capped at about `Λ_abs / max(Λ_rel, |δτ|)`.
