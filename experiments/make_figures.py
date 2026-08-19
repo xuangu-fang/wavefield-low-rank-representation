@@ -206,6 +206,88 @@ def figure_task_vs_rank_gain() -> None:
     plt.close(fig)
 
 
+def figure_carrier_tolerance() -> None:
+    payload = load("exp07_carrier_error_tolerance.json")
+    if not payload:
+        return
+    rows = payload["rows"]
+    fig, axes = plt.subplots(1, 2, figsize=(8.0, 3.3), sharey=True)
+    regimes = ["open_clear", "open_sparse", "partial_clear"]
+    colors = {"open_clear": PALETTE["eikonal"], "open_sparse": PALETTE["data_pick"],
+              "partial_clear": PALETTE["straight"]}
+    for axis, kind in zip(axes, ("smooth", "scaling")):
+        for regime in regimes:
+            subset = [
+                r for r in rows
+                if r["error_kind"] == kind and r["regime"] == regime and r["band"] == [6.0, 24.0]
+            ]
+            if not subset:
+                continue
+            scales = sorted({r["error_scale_in_resolutions"] for r in subset})
+            ratio, baseline = [], []
+            for scale in scales:
+                group = [r for r in subset if r["error_scale_in_resolutions"] == scale]
+                ratio.append(np.mean([r["aligned_interp_nrmse"] for r in group]))
+                baseline.append(np.mean([r["raw_interp_nrmse"] for r in group]))
+            axis.plot(scales, np.array(ratio) / np.array(baseline), "o-", ms=3.5, lw=1.4,
+                      color=colors[regime], label=regime.replace("_", ", "))
+        axis.axhline(1.0, color="#666666", lw=0.9, ls=":")
+        axis.axvline(1.0, color=PALETTE["raw"], lw=0.9, ls="--")
+        axis.set_yscale("log")
+        axis.set_xlabel("carrier error  $\\delta\\tau$  (in units of $1/B$)")
+        axis.set_title(
+            {"smooth": "rough spatial error", "scaling": "smooth scaling error"}[kind],
+            fontsize=9,
+        )
+    axes[0].set_ylabel("NRMSE$_{aligned}$ / NRMSE$_{raw}$\n(2% sensors; lower is better)")
+    axes[0].legend(fontsize=8, loc="lower right")
+    fig.tight_layout()
+    fig.savefig(FIGURES / "fig3_carrier_tolerance.png")
+    plt.close(fig)
+
+
+def figure_bandwidth_not_frequency() -> None:
+    payload = load("exp08_bandwidth_not_frequency.json")
+    if not payload:
+        return
+    rows = [r for r in payload["rows"] if r["regime"] == "closed_dense"]
+    if not rows:
+        return
+    fig, axes = plt.subplots(1, 2, figsize=(7.6, 3.3), sharey=True)
+    centres = sorted({r["centre"] for r in rows})
+    bandwidths = sorted({r["nominal_bandwidth"] for r in rows})
+    cmap = plt.get_cmap("viridis")
+
+    for index, centre in enumerate(centres):
+        subset = sorted(
+            [r for r in rows if r["centre"] == centre], key=lambda r: r["bandwidth"]
+        )
+        axes[0].plot(
+            [r["bandwidth"] for r in subset], [r["raw_rank_90"] for r in subset],
+            "o-", ms=3.5, lw=1.2, color=cmap(index / max(len(centres) - 1, 1)),
+            label=f"$f_c$={centre:.0f}",
+        )
+    for index, bandwidth in enumerate(bandwidths):
+        subset = sorted(
+            [r for r in rows if r["nominal_bandwidth"] == bandwidth], key=lambda r: r["centre"]
+        )
+        axes[1].plot(
+            [r["centre"] for r in subset], [r["raw_rank_90"] for r in subset],
+            "s-", ms=3.5, lw=1.2, color=cmap(index / max(len(bandwidths) - 1, 1)),
+            label=f"$B$={bandwidth:.0f}",
+        )
+    axes[0].set_xlabel("bandwidth $B$")
+    axes[1].set_xlabel("centre frequency $f_c$")
+    axes[0].set_ylabel("numerical rank (90% energy)")
+    axes[0].set_title("rank grows linearly with bandwidth", fontsize=9)
+    axes[1].set_title("rank is flat in centre frequency", fontsize=9)
+    axes[0].legend(fontsize=7, ncol=2)
+    axes[1].legend(fontsize=7, ncol=2)
+    fig.tight_layout()
+    fig.savefig(FIGURES / "fig7_bandwidth_not_frequency.png")
+    plt.close(fig)
+
+
 def figure_fields() -> None:
     from wave_lr.fdtd import MediumSpec
     from wave_lr.fields import fdtd_case, load_well_acoustic
@@ -228,7 +310,12 @@ def figure_fields() -> None:
         index = spectrum.values.shape[1] // 2
         raw = spectrum.values[:, index]
         aligned = raw * np.conj(carrier(spectrum.frequencies, case.travel_time))[:, index]
-        span = np.abs(raw).max()
+        span = float(np.percentile(np.abs(raw), 99.0))
+        from wave_lr.diagnostics import singular_spectrum
+
+        def rank_of(values):
+            values = values.reshape(-1, 1) if values.ndim == 1 else values
+            return None
         for row, (values, label) in enumerate(((raw, "raw"), (aligned, "aligned"))):
             axis = axes[row, column]
             scatter = axis.scatter(
@@ -243,6 +330,7 @@ def figure_fields() -> None:
                 axis.set_title(f"{title}\nRe $u(x, f)$", fontsize=9)
             else:
                 axis.set_title("Re $u\\,e^{+2\\pi i f\\tau(x)}$", fontsize=9)
+            axis.set_xlabel(label, fontsize=8)
         fig.colorbar(scatter, ax=axes[:, column], shrink=0.7)
     fig.savefig(FIGURES / "fig6_fields.png", bbox_inches="tight")
     plt.close(fig)
@@ -254,6 +342,8 @@ def main() -> None:
     figure_phase_diagram()
     figure_task_curves()
     figure_task_vs_rank_gain()
+    figure_carrier_tolerance()
+    figure_bandwidth_not_frequency()
     figure_fields()
     print(f"figures written to {FIGURES}")
 
