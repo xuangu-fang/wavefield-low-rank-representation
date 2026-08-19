@@ -211,6 +211,32 @@ BODY = """
   <figure><img src="{{FIG8}}" alt="四个区间下逼近误差随参数预算的三条曲线">
     <figcaption><b>图 8.</b> 等参数预算下的逼近误差。多载波的优势随散射增强而消失。</figcaption>
   </figure>
+
+  <h3>8.1&nbsp;&nbsp;去掉几何假设：直接从数据里长出载波库</h3>
+  <p>镜像源需要知道边界，这是上面结果里唯一的"作弊"成分。把它换成纯数据驱动的流程：
+  每一轮重新拟合整个多载波模型，在<strong>模型残差</strong>上扫描"哪个虚源波前能让残差同相叠加"，
+  把该虚源加入载波库；<strong>只在固定总预算下拟合变好时才保留</strong>——多一个载波意味着
+  每个载波分到的秩更低，所以没用的载波会让模型变差而被自动拒绝。全过程不使用任何几何信息。</p>
+  <div class="tablewrap"><table>
+    <caption>R=24 时的相对逼近误差。最后一列是流程自己决定保留的载波数。</caption>
+    <thead><tr><th>区间</th><th class="num">plain rank-R</th><th class="num">单载波</th><th class="num">估计载波（无几何）</th><th class="num">oracle 镜像源</th><th class="num">载波数</th></tr></thead>
+    <tbody>
+      <tr><td>open, clear</td><td class="num">0.011</td><td class="num">0.003</td><td class="num win">0.003</td><td class="num">0.003</td><td class="num">1（自动停止）</td></tr>
+      <tr><td>partial, clear</td><td class="num">0.440</td><td class="num">0.329</td><td class="num win">0.289</td><td class="num">0.231</td><td class="num">2</td></tr>
+      <tr><td>closed, clear</td><td class="num">0.608</td><td class="num">0.522</td><td class="num win">0.390</td><td class="num">0.372</td><td class="num">4</td></tr>
+      <tr><td>closed, sparse</td><td class="num">0.643</td><td class="num">0.583</td><td class="num win">0.518</td><td class="num">0.507</td><td class="num">4</td></tr>
+      <tr><td>closed, dense</td><td class="num">0.652</td><td class="num">0.604</td><td class="num win">0.571</td><td class="num">0.568</td><td class="num">2–3</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout good"><div class="hd">几何假设可以去掉</div>
+    <p><strong>估计载波拿到 oracle 增益的 90–96%</strong>（partial / clear 为 65%），不需要任何几何输入。
+    每个被接受的虚源波前与真实镜像源波前的形状误差，在无杂波区间是
+    <strong>0.02–0.08 × (1/B)</strong>，远在第 6 节的容限之内；加入散射体后退化到 0.25–0.5 × (1/B)，仍在容限内。
+    在 open / clear 区间流程<strong>自动停在 M=1</strong>——它正确判断出没有第二个值得加的到达。
+    判据既告诉你什么时候该加载波，也告诉你什么时候不必加。</p></div>
+  <figure><img src="{{FIG9}}" alt="四种方法在五个区间下的误差柱状图，以及估计载波捕获 oracle 增益的百分比">
+    <figcaption><b>图 9.</b> 左：等参数预算下四种模型的误差。右：估计载波捕获了多少 oracle（已知几何）增益。</figcaption>
+  </figure>
   <div class="callout"><div class="hd">实现教训（保留以免后来者重蹈）</div>
     <p>最初用 Adam 拟合该模型，在较大预算上<strong>发散</strong>（误差 7、30、91）。载波之间远非正交，
     一阶方法条件数极差。换成交替最小二乘后单调收敛。这不是方法的性质，是优化器的性质。</p></div>
@@ -224,10 +250,20 @@ BODY = """
     <tbody>
       <tr><td>The Well acoustic maze</td><td class="num">12</td><td class="num">24.7 → 23.2</td><td class="num">1.06</td><td class="num bad">1.02×</td><td>无收益 ✓</td></tr>
       <tr><td>The Well acoustic inclusions (256²)</td><td class="num">10</td><td class="num">6.5 → 6.2</td><td class="num">1.05</td><td class="num">1.18×</td><td>微弱收益 ✓</td></tr>
-      <tr><td>The Well Helmholtz staircase</td><td class="num">3</td><td class="num">4.0 → 2.0</td><td class="num win">2.00</td><td class="num win">1.43×</td><td>中等收益 ✓</td></tr>
+      <tr><td>The Well Helmholtz staircase（train，26 源）</td><td class="num">26</td><td class="num">3.85 → 1.65</td><td class="num win">2.54</td><td class="num win">1.69×</td><td>中等收益 ✓</td></tr>
     </tbody>
   </table></div>
-  <p>staircase 上逐项低秩补全从 0.994 提升到 <strong>0.839</strong>（原始场基本等于零预测）。</p>
+  <div class="tablewrap"><table>
+    <caption>staircase：26 个源位置上的传感器重建。增益随传感器变密而增大，方差很小。</caption>
+    <thead><tr><th>传感器比例</th><th class="num">1%</th><th class="num">2%</th><th class="num">5%</th><th class="num">10%</th></tr></thead>
+    <tbody>
+      <tr><td>原始场 NRMSE</td><td class="num">0.211</td><td class="num">0.162</td><td class="num">0.105</td><td class="num">0.075</td></tr>
+      <tr><td>对齐场 NRMSE</td><td class="num win">0.136</td><td class="num win">0.099</td><td class="num win">0.057</td><td class="num win">0.037</td></tr>
+      <tr><td>增益</td><td class="num">1.61 ± 0.20</td><td class="num">1.69 ± 0.22</td><td class="num">1.90 ± 0.26</td><td class="num win">2.12 ± 0.34</td></tr>
+    </tbody>
+  </table></div>
+  <p>逐项低秩补全从 0.992 提升到 <strong>0.813</strong>（原始场基本等于零预测）。
+  test split 的 3 条轨迹共用同一个源位置，所以逐源统计用的是 train split。</p>
   <div class="callout"><div class="hd">对社区有用的观察</div>
     <p>主流公开波动 benchmark 绝大多数落在<strong>混响区间</strong>，而这恰恰是相位对齐类方法必然失效的区间。
     这解释了这类方法在 benchmark 上长期让人失望的历史，也说明 benchmark 覆盖存在系统性缺口——
@@ -268,9 +304,8 @@ BODY = """
 <section id="c12">
   <h2><span class="n">12 / 下一步</span>按优先级</h2>
   <ol class="steps">
-    <li><strong>把 τ<sub>m</sub> 从镜像源推广到可学习/数据估计。</strong>镜像源只适用于规则边界；
-      真实介质需要从数据里估计多到达。定律给出了验收标准——每加一个载波，
-      <code>Λ<sub>rel</sub></code> 应下降到 coda 的分段占据。</li>
+    <li><strong>把虚源模型推广到非均匀背景。</strong>目前虚源用的是常速背景下的
+      <code>|x−p|/c</code>；强速度反差介质需要用射线或 eikonal 走时表替代这一步。</li>
     <li><strong>补上"有利区间"的公开 benchmark。</strong>目前只有自建 FDTD 在该区间，
       需要一个可引用的公开开放介质数据（WaveBench 的部分任务，或官方配对的 OpenFWI 文件）。</li>
     <li><strong>色散推广。</strong>把载波从 <code>2πfτ</code> 推广到一般 <code>φ(x,f)</code>（局部相位斜率估计）——
