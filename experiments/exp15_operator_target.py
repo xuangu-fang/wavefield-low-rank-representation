@@ -171,6 +171,14 @@ def main() -> None:
     def to_channels(values):
         return np.concatenate([values.real, values.imag], axis=1).astype(np.float32)
 
+    def standardise(values, reference):
+        """Per-frequency-channel scaling; magnitudes differ by orders across the band."""
+
+        channels = to_channels(values)
+        scale = to_channels(reference).std(axis=(0, 2, 3), keepdims=True)
+        scale = np.maximum(scale, 1e-12)
+        return channels / scale, scale
+
     grid_axis = np.linspace(0.0, 1.0, args.grid, dtype=np.float32)
     mesh = np.stack(np.meshgrid(grid_axis, grid_axis, indexing="ij"))
     inputs = np.concatenate(
@@ -205,6 +213,8 @@ def main() -> None:
         rows.append(
             {
                 "target": label,
+                "modes": args.modes,
+                "width": args.width,
                 "regime": args.regime,
                 "test_nrmse": error,
                 "test_nrmse_median": float(np.median(per_case)),
@@ -220,11 +230,15 @@ def main() -> None:
             flush=True,
         )
 
-    payload = {"rows": rows, "gain": rows[0]["test_nrmse"] / rows[1]["test_nrmse"]}
-    payload["family"] = args.family
-    (RESULTS / f"exp15_operator_{args.family}_{args.regime}.json").write_text(
-        json.dumps(payload, indent=2)
-    )
+    payload = {
+        "rows": rows,
+        "gain": rows[0]["test_nrmse"] / rows[1]["test_nrmse"],
+        "family": args.family,
+        "modes": args.modes,
+        "width": args.width,
+    }
+    name = f"exp15_operator_{args.family}_{args.regime}_m{args.modes}_w{args.width}.json"
+    (RESULTS / name).write_text(json.dumps(payload, indent=2))
     print(f"carrier gain: {payload['gain']:.2f}x")
 
 
