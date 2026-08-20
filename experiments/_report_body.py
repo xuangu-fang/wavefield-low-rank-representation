@@ -236,24 +236,23 @@ BODY = """
   不是"表征规则"。真正的检验是：能不能训练一个网络，把<strong>介质</strong>映射到它的对齐坐标，
   然后在<strong>没见过的介质</strong>上一次前向传播就得到坐标？</p>
   <div class="tablewrap"><table>
-    <caption>训练 180 个介质、测试 32 个未见介质，唯一的损失就是可辨识性界本身——无标签、无 eikonal 目标。</caption>
-    <thead><tr><th>坐标来源</th><th class="num">未见介质上的界（m=6）</th><th>测试时代价</th></tr></thead>
+    <caption>唯一的损失就是可辨识性界本身——无标签、无 eikonal 目标。测试时物理需要每个介质跑一次求解器，摊销学习只要一次前向传播。界在 m=6。</caption>
+    <thead><tr><th>训练 → 测试</th><th class="num">无载波</th><th class="num">eikonal</th><th class="num">摊销学习</th><th class="num">摊销+热启动</th><th class="num"><em>逐场上限</em></th></tr></thead>
     <tbody>
-      <tr><td>无载波</td><td class="num bad">0.995 ± 0.002</td><td>—</td></tr>
-      <tr><td>eikonal（物理）</td><td class="num win">0.581 ± 0.126</td><td style="text-align:left">每个介质跑一次求解器</td></tr>
-      <tr><td><strong>摊销学习（无任何物理）</strong></td><td class="num win">0.591 ± 0.146</td><td style="text-align:left"><strong>一次前向传播</strong></td></tr>
-      <tr><td>摊销学习（物理热启动）</td><td class="num">0.594 ± 0.147</td><td style="text-align:left">一次前向传播</td></tr>
-      <tr><td><em>逐场拟合（上限）</em></td><td class="num">0.488</td><td style="text-align:left">每个场训练一次</td></tr>
+      <tr><td>随机散射体 → 同族未见 32 个</td><td class="num bad">0.995</td><td class="num win">0.581</td><td class="num win">0.591</td><td class="num">0.594</td><td class="num">0.488</td></tr>
+      <tr><td>单夹杂 → 同族未见 32 个</td><td class="num bad">0.997</td><td class="num">0.330</td><td class="num win">0.300</td><td class="num win">0.296</td><td class="num">0.257</td></tr>
+      <tr><td><strong>随机散射体 → 单夹杂（跨介质族）</strong></td><td class="num bad">0.997</td><td class="num win">0.364</td><td class="num win">0.364</td><td class="num">0.363</td><td class="num">0.310</td></tr>
     </tbody>
   </table></div>
   <div class="callout good"><div class="hd">三条读数</div>
     <p><strong>1.</strong> 摊销的学习坐标在未见介质上<strong>追平物理</strong>（0.591 vs 0.581），
-    测试时只要一次前向传播，不需要知道 <code>c(x)</code> 也不需要跑 eikonal——
+    在单夹杂族上<strong>超过物理</strong>（0.300 vs 0.330），测试时只要一次前向传播——
     <strong>这才是"表征"而不是"某个场的拟合"</strong>。<br>
-    <strong>2.</strong> <strong>物理热启动没有帮助</strong>（0.594 vs 0.591）。
+    <strong>2.</strong> <strong>跨介质族也成立</strong>：在随机多散射体上训练、在单夹杂介质上测试，
+    与物理<strong>完全持平</strong>（0.364 vs 0.364）。学到的不是某一族介质的特例。<br>
+    <strong>3.</strong> <strong>物理热启动几乎没有帮助</strong>（差别在噪声内）。
     在摊销设定下，物理连初始化的作用都不必要了。<br>
-    <strong>3.</strong> <strong>摊销的代价约 20%</strong>：逐场拟合能到 0.488，摊销到 0.591。
-    这是"一次前向 vs 每场训练"要付的价钱，也给出了改进空间的上界。</p></div>
+    <strong>4.</strong> <strong>摊销的代价约 15–20%</strong>，也给出了改进空间的上界。</p></div>
   <p>这条结果把主张从"可以为某个场找到好坐标"升级为"<strong>可以学到一条从介质到坐标的规则</strong>"，
   并且这条规则的训练<strong>完全不需要标签</strong>——损失就是我们一直在报告的那个量。</p>
 </section>

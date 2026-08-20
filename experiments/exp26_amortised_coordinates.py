@@ -49,6 +49,10 @@ def main() -> None:
     warnings.filterwarnings("ignore")
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", default="operator_open_128_240.npz")
+    parser.add_argument(
+        "--test-dataset", default=None,
+        help="train on --dataset, evaluate on a different medium family",
+    )
     parser.add_argument("--train", type=int, default=180)
     parser.add_argument("--test", type=int, default=32)
     parser.add_argument("--steps", type=int, default=3000)
@@ -64,6 +68,16 @@ def main() -> None:
     travel = data["travel_time"]
     frequencies = data["frequencies"]
     grid = speed.shape[-1]
+
+    cross_family = args.test_dataset is not None
+    if cross_family:
+        # Train on one medium family, evaluate on a different one entirely.
+        other = np.load(CACHE / args.test_dataset)
+        assert np.allclose(other["frequencies"], frequencies), "frequency grids differ"
+        offset = len(speed)
+        field = np.concatenate([field, other["field"][: args.test]])
+        speed = np.concatenate([speed, other["speed"][: args.test]])
+        travel = np.concatenate([travel, other["travel_time"][: args.test]])
 
     axis = np.linspace(0.0, 1.0, grid, dtype=np.float32)
     mesh = np.stack(np.meshgrid(axis, axis, indexing="ij"))
@@ -84,7 +98,10 @@ def main() -> None:
     ).to(device)
 
     train_index = np.arange(args.train)
-    test_index = np.arange(args.train, min(args.train + args.test, len(speed)))
+    if cross_family:
+        test_index = np.arange(offset, offset + args.test)
+    else:
+        test_index = np.arange(args.train, min(args.train + args.test, len(speed)))
 
     def train_model(use_warmup: bool, seed: int = 0):
         torch.manual_seed(seed)
@@ -129,7 +146,8 @@ def main() -> None:
                 f"{label}_bound_std": float(np.std(values))}
 
     summary = {"n_train": len(train_index), "n_test": len(test_index),
-               "dataset": args.dataset, "target_stride": TARGET_STRIDE}
+               "dataset": args.dataset, "test_dataset": args.test_dataset or args.dataset,
+               "cross_family": cross_family, "target_stride": TARGET_STRIDE}
     summary.update(evaluate([np.zeros((grid, grid))] * len(test_index), "raw"))
     summary.update(evaluate([travel[c] for c in test_index], "eikonal"))
 
@@ -168,7 +186,8 @@ def main() -> None:
     summary["per_case_fitted_bound"] = float(np.mean(per_case))
     summary["per_case_n"] = len(per_case)
 
-    (RESULTS / "exp26_amortised_coordinates.json").write_text(json.dumps(summary, indent=2))
+    tag = "cross" if cross_family else Path(args.dataset).stem
+    (RESULTS / f"exp26_amortised_{tag}.json").write_text(json.dumps(summary, indent=2))
     print(json.dumps(summary, indent=2))
 
 
