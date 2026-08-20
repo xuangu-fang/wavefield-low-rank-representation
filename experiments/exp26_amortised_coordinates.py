@@ -156,7 +156,7 @@ def main() -> None:
     for use_warmup, label in ((False, "amortised_scratch"), (True, "amortised_warmstart")):
         per_seed = []
         for seed in range(args.seeds):
-            model, history = train_model(use_warmup, seed=seed)
+            model, _ = train_model(use_warmup, seed=seed)
             with torch.no_grad():
                 predicted = (
                     model(inputs_t[torch.from_numpy(test_index).to(device)])[:, 0] * scale
