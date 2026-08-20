@@ -84,9 +84,19 @@ BODY = """
     </tbody>
   </table></div>
   <div class="callout good"><div class="hd">界在多少数据上成立</div>
-    <p>自建求解器 + The Well maze + acoustic inclusions：<strong>234 组</strong>测量，打破比例 <strong>1.7%</strong>，R²=0.80。<br>
+    <p>自建求解器 + The Well maze + acoustic inclusions：<strong>610 组</strong>测量（3 seed），
+    打破比例 <strong>1.97%</strong>——其中两个公开数据集均为 <strong>0%</strong>，自建求解器 2.4%。<br>
     公开频域数据（Helmholtz staircase + WaveBench）：<strong>224 组</strong>，打破比例 <strong>8.0%</strong>
     （WaveBench ω=40 为 <strong>0%</strong>），R²=0.88。</p></div>
+  <div class="tablewrap"><table>
+    <caption>它可以直接当设计工具：给定目标精度，界反推出需要多密的阵列。</caption>
+    <thead><tr><th>目标精度</th><th class="num">拟合斜率</th><th class="num">R²</th><th class="num">n</th></tr></thead>
+    <tbody>
+      <tr><td>NRMSE ≤ 0.5</td><td class="num">0.793</td><td class="num win">0.947</td><td class="num">40</td></tr>
+      <tr><td>NRMSE ≤ 0.3</td><td class="num">1.252</td><td class="num win">0.973</td><td class="num">20</td></tr>
+    </tbody>
+  </table></div>
+  <p><strong>在建阵列之前，一次 FFT 就能算出它需要多密</strong>，误差在对数尺度上 R²≈0.95。</p>
   <figure><img src="{{FIG13}}" alt="左：实测误差对界的双对数散点；右：误差随阵列间距的曲线">
     <figcaption><b>图 0.</b> 左：界成立且接近紧。右：载波把整条曲线搬下去——不增加任何一次测量。</figcaption>
   </figure>
