@@ -18,6 +18,7 @@ BODY = """
   <ol>
     <li><a href="#c0"><span class="n">00</span><span>可辨识性界</span></a></li>
     <li><a href="#c02"><span class="n">00b</span><span>不是容量</span></a></li>
+    <li><a href="#c03"><span class="n">00c</span><span>把界当损失</span></a></li>
     <li><a href="#c1"><span class="n">01</span><span>三条主张</span></a></li>
     <li><a href="#c2"><span class="n">02</span><span>秩定律成立</span></a></li>
     <li><a href="#c3"><span class="n">03</span><span>带宽，不是频率</span></a></li>
@@ -116,6 +117,47 @@ BODY = """
     跟着从 0.887 降到 0.604——<strong>没有增加任何一次测量</strong>。</p></div>
   <p>界在 48 组里被打破 4 次（8.3%），线性插值平均是界的 1.48 倍——即界不仅成立，而且接近可达。
   这就是"可辨识性，而不是容量"这句话的全部经验内容。</p>
+</section>
+
+<section id="c03">
+  <h2><span class="n">00c / 学回来</span>把界本身当成损失函数</h2>
+  <p class="lede">界是<strong>场在某个坐标系下</strong>的性质。物理通过提供走时把它降下去。
+  那么不给介质、不给源、不给求解器，能不能把同样的降幅学出来？</p>
+  <div class="formula">min<sub>θ</sub>   能量( |k| &gt; 1/(2m) ) ⁄ 总能量      在坐标 exp(+i φ<sub>θ</sub>) 下</div>
+  <p>这个量<strong>无标签、无真值、一次 FFT 即可微</strong>。于是同一个量同时是
+  <strong>诊断、训练目标和上报指标</strong>。</p>
+  <div class="tablewrap"><table>
+    <caption>阵列间距 m=6，4 个区间 × 2 seed 平均。</caption>
+    <thead><tr><th>坐标系</th><th class="num">界</th><th class="num">实测误差</th></tr></thead>
+    <tbody>
+      <tr><td>无载波</td><td class="num bad">0.994</td><td class="num bad">1.112</td></tr>
+      <tr><td>eikonal（物理）</td><td class="num">0.533</td><td class="num win">0.634</td></tr>
+      <tr><td>eikonal 被粗糙误差破坏</td><td class="num bad">0.931</td><td class="num bad">1.123</td></tr>
+      <tr><td><strong>纯学习（无物理）</strong></td><td class="num win">0.528</td><td class="num">0.687</td></tr>
+      <tr><td><strong>学习修复被破坏的载波</strong></td><td class="num win">0.521</td><td class="num">0.688</td></tr>
+      <tr><td>学习（从正确物理出发）</td><td class="num win">0.521</td><td class="num">0.681</td></tr>
+      <tr><td><em>消融：改用频率轴目标</em></td><td class="num bad">0.644</td><td class="num bad">0.764</td></tr>
+    </tbody>
+  </table></div>
+  <div class="tablewrap"><table>
+    <caption>逐区间的界（m=6）。</caption>
+    <thead><tr><th>区间</th><th class="num">无载波</th><th class="num">物理</th><th class="num">物理被破坏</th><th class="num">纯学习</th><th class="num">学习修复</th></tr></thead>
+    <tbody>
+      <tr><td>open, clear</td><td class="num bad">0.997</td><td class="num win">0.062</td><td class="num bad">0.888</td><td class="num">0.128</td><td class="num">0.073</td></tr>
+      <tr><td>open, sparse</td><td class="num bad">0.991</td><td class="num">0.594</td><td class="num bad">0.930</td><td class="num win">0.549</td><td class="num win">0.548</td></tr>
+      <tr><td>partial, clear</td><td class="num bad">0.997</td><td class="num">0.663</td><td class="num bad">0.916</td><td class="num">0.663</td><td class="num">0.663</td></tr>
+      <tr><td>closed, dense</td><td class="num bad">0.987</td><td class="num">0.878</td><td class="num bad">0.939</td><td class="num">0.877</td><td class="num win">0.860</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout good"><div class="hd">四条读数</div>
+    <p><strong>1.</strong> 纯学习在界上<strong>追平物理</strong>（0.528 vs 0.533）——不给介质、不给源位置、不跑求解器。<br>
+    <strong>2.</strong> 四个区间里学习在<strong>三个</strong>上追平或超过物理；物理明显更优的只有 open/clear。<br>
+    <strong>3.</strong> 学习把<strong>被破坏的载波修回来</strong>（0.931 → 0.521），甚至略优于正确的物理。<br>
+    <strong>4.</strong> <strong>目标必须与指标一致</strong>：改用频率轴目标只到 0.644，明显更差。</p></div>
+  <div class="callout"><div class="hd">如实记录一处不一致</div>
+    <p>学习把界降到与物理相同甚至更低，但实测误差仍略高（0.687 vs 0.634）。
+    即学出来的坐标<em>释放</em>了可辨识性，而线性插值没有把它全部兑现——
+    这个差距属于估计器，不属于表征。</p></div>
 </section>
 
 <section id="c1">

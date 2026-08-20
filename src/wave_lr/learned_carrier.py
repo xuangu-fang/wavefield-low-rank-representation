@@ -20,6 +20,12 @@ The nuclear norm is only a surrogate for low rank, and minimising it can trade
 against the quantity actually reported -- the error of the best rank-``R``
 approximation. ``objective="tail"`` therefore optimises that error directly,
 which is equally differentiable through the singular values.
+
+``objective="aliasing"`` goes one step further and minimises the identifiability
+bound itself: the fraction of the field's energy above the Nyquist wavenumber of
+a target sensor array. That makes one quantity serve as the diagnostic, the
+training loss and the reported metric at once, and it is what a sensing problem
+actually cares about.
 """
 
 from __future__ import annotations
@@ -42,6 +48,9 @@ class CarrierConfig:
     learning_rate: float = 3e-4
     objective: str = "tail"
     budget: int = 16
+    # For objective="aliasing": the regular-array spacing the carrier should
+    # make the field identifiable at.
+    target_stride: int = 6
     physics_weight: float = 0.0
     warmup_steps: int = 300
     seed: int = 0
@@ -120,6 +129,18 @@ def _gradient_magnitude(delays, coords, grid_shape, spacing):
     return torch.sqrt(d_row**2 + d_col**2 + 1e-12)
 
 
+def _grid_indices(coords: NDArray[np.float64], spacing: float | None = None):
+    """Row and column indices of scattered coordinates on their own grid."""
+
+    from .spatial import infer_spacing
+
+    if spacing is None:
+        spacing = infer_spacing(coords)
+    rows = np.rint(coords[:, 0] / spacing).astype(int)
+    cols = np.rint(coords[:, 1] / spacing).astype(int)
+    return rows - rows.min(), cols - cols.min()
+
+
 def fit_learned_carrier(
     field: NDArray[np.complex128],
     frequencies: NDArray[np.float64],
@@ -170,6 +191,29 @@ def fit_learned_carrier(
             np.asarray(slowness, dtype=np.float32).reshape(grid_shape)
         ).to(device)
 
+    aliasing_setup = None
+    if config.objective == "aliasing":
+        import torch as _torch
+
+        from .spatial import taper_window
+
+        rows, cols = _grid_indices(coords, spacing)
+        shape = (int(rows.max()) + 1, int(cols.max()) + 1)
+        window = _torch.from_numpy(taper_window(shape)).to(device).to(torch.complex64)
+        ky = np.fft.fftfreq(shape[0])[:, None]
+        kx = np.fft.fftfreq(shape[1])[None, :]
+        cutoff = 0.5 / config.target_stride
+        outside = _torch.from_numpy(
+            (np.sqrt(ky**2 + kx**2) > cutoff).astype(np.float32)
+        ).to(device)
+        aliasing_setup = (
+            _torch.from_numpy(rows).long().to(device),
+            _torch.from_numpy(cols).long().to(device),
+            shape,
+            window,
+            outside,
+        )
+
     history = {"nuclear": [], "warmup": [], "physics": []}
     for step in range(config.warmup_steps + config.steps):
         optimiser.zero_grad(set_to_none=True)
@@ -182,6 +226,21 @@ def fit_learned_carrier(
         else:
             # exp(+i phi) removes the carrier, matching spectra.shift_spectrum.
             aligned = values * torch.exp(1j * phase)
+            if aliasing_setup is not None:
+                rows_t, cols_t, shape, window, outside = aliasing_setup
+                # Every frequency in the band, not just one column: the carrier
+                # has to make the field identifiable across the whole band.
+                grid = torch.zeros(
+                    (aligned.shape[1], *shape), dtype=torch.complex64, device=device
+                )
+                grid[:, rows_t, cols_t] = aligned.transpose(0, 1)
+                power = torch.abs(torch.fft.fft2(grid * window[None])) ** 2
+                loss = (power * outside[None]).sum() / power.sum().clamp_min(1e-30)
+                history.setdefault("objective", []).append(float(loss.detach()))
+                history["nuclear"].append(float(loss.detach()))
+                loss.backward()
+                optimiser.step()
+                continue
             spectrum = torch.linalg.svdvals(aligned)
             if config.objective == "nuclear":
                 loss = spectrum.sum() / frobenius
