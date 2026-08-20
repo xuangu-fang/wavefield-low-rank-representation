@@ -78,7 +78,10 @@ def main() -> None:
             resolution = 1.0 / spectrum.bandwidth
             corrupted = case.travel_time + resolution * smooth_error(case.coords, seed=seed)
 
-            def learn(initial, learning_rate, steps, warmup, objective, seed=seed):
+            def learn(
+                initial, learning_rate, steps, warmup, objective,
+                seed=seed, spectrum=spectrum, case=case,
+            ):
                 delays, _ = fit_learned_carrier(
                     spectrum.values, spectrum.frequencies, case.coords,
                     CarrierConfig(
