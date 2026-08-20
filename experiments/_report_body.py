@@ -19,6 +19,7 @@ BODY = """
     <li><a href="#c0"><span class="n">00</span><span>可辨识性界</span></a></li>
     <li><a href="#c02"><span class="n">00b</span><span>不是容量</span></a></li>
     <li><a href="#c03"><span class="n">00c</span><span>把界当损失</span></a></li>
+    <li><a href="#c04"><span class="n">00d</span><span>与采样定理的关系</span></a></li>
     <li><a href="#c1"><span class="n">01</span><span>三条主张</span></a></li>
     <li><a href="#c2"><span class="n">02</span><span>秩定律成立</span></a></li>
     <li><a href="#c3"><span class="n">03</span><span>带宽，不是频率</span></a></li>
@@ -166,6 +167,33 @@ BODY = """
     <figcaption><b>图 2.</b> 灰（无载波）与红（被破坏的物理）居高不下；
     橙（物理）、蓝（纯学习）、绿（破坏后再学习）几乎重合。</figcaption>
   </figure>
+</section>
+
+<section id="c04">
+  <h2><span class="n">00d / 划界</span>与经典采样定理的关系</h2>
+  <p class="lede">这条界本身<strong>不是新的</strong>——"规则采样下高于 Nyquist 的内容不可辨识"
+  就是采样定理。不加说明地写进论文会被正确地质疑。以下是明确的划界。</p>
+  <div class="claims">
+    <div class="claim"><div class="tag">属于经典</div><h4>我们没有贡献的部分</h4>
+      <p>规则阵列上的混叠与 Nyquist 波数；"波场需要每波长若干采样点"这一工程常识；
+      相位解调、shifted POD、plane-wave 基等表征手段本身。</p></div>
+    <div class="claim"><div class="tag">我们的主张</div><h4>四条新的部分</h4>
+      <p><strong>1.</strong> 把它变成<strong>事前可算</strong>的量——从介质 <code>c(x)</code> 出发，
+      一次 eikonal 求解就能把它从 0.997 降到 0.062，不需要场本身。<br>
+      <strong>2.</strong> 把"该不该做物理对齐"变成<strong>一个数</strong>，并在四个公开数据集上事前预测全中。<br>
+      <strong>3.</strong> 证明它<strong>不是建模问题</strong>——128 倍容量、六个估计器、训练误差 10⁻⁷。<br>
+      <strong>4.</strong> 把它变成<strong>自监督训练目标</strong>，在不知道介质时把可辨识性学回来。</p></div>
+    <div class="claim"><div class="tag">一句话</div><h4>差别在哪</h4>
+      <p>经典结果说"高于 Nyquist 的内容丢了"；我们说的是"<strong>你可以先算出丢多少，
+      可以用物理把它搬到 Nyquist 以下，而且这个搬运本身可以学</strong>"。</p></div>
+  </div>
+  <div class="callout"><div class="hd">两条必须声明的适用边界</div>
+    <p><strong>随机阵列不适用。</strong>随机采样下混叠不是一堵墙，稀疏的高波数内容可以被恢复——
+    正是压缩感知的机制。实测：随机采样下该量被打破的比例升到 6.5%，退化为启发式而非界。
+    本文全部结论只针对<strong>规则阵列</strong>（也是真实传感硬件的形态）。<br>
+    <strong>界描述可辨识性，不描述估计器。</strong>当场远低于 Nyquist 时界趋于 0，
+    而线性插值仍有自身的截断误差，此时界成立但无信息量。
+    界有意义的区间是采样接近或超过 Nyquist 的时候——也正是实际会遇到的区间。</p></div>
 </section>
 
 <section id="c1">
