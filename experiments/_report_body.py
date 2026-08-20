@@ -277,6 +277,51 @@ BODY = """
   <figure><img src="{{FIG9}}" alt="四种方法在五个区间下的误差柱状图，以及估计载波捕获 oracle 增益的百分比">
     <figcaption><b>图 9.</b> 左：等参数预算下四种模型的误差。右：估计载波捕获了多少 oracle（已知几何）增益。</figcaption>
   </figure>
+  <h3>8.2&nbsp;&nbsp;与最近的先验工作对比：shifted POD</h3>
+  <p>shifted POD（Reiss 等）把输运主导的场分解成几个"共动坐标系"，每个在撤掉刚性位移后低秩。
+  表面上和我们很像——但<strong>它撤的是整帧共享的空间刚性平移，我们撤的是逐点的时间弯折</strong>。
+  对刚性平移的图案两者等价；对点源的<strong>膨胀</strong>波前、被介质折射的波前，前者原理上表达不了。</p>
+  <div class="callout good"><div class="hd">先证明实现没有削弱它</div>
+    <p>在一个刚性平移的高斯脉冲上（它自己的假设成立时）：rank 1 → plain POD 0.855 vs
+    shifted POD <strong>0.0008</strong>；rank 2 → 0.706 vs <strong>0.0000</strong>。
+    比 plain POD 好三个数量级。关键实现细节：位移必须做<strong>亚像素</strong>估计
+    （FFT 互相关 + 抛物线插值）；只做整数位移时残差被分数级错位主导，
+    这个 baseline 会看起来弱得多。</p></div>
+  <div class="tablewrap"><table>
+    <caption>真实波场，时域，等参数预算；shifted POD 取 K=1,2,3 中最好的一档。</caption>
+    <thead><tr><th>场</th><th class="num">R</th><th class="num">plain POD</th><th class="num">shifted POD</th><th class="num">载波（我们）</th><th class="num">我们/plain</th><th class="num">sPOD/plain</th></tr></thead>
+    <tbody>
+      <tr><td>open, clear</td><td class="num">4</td><td class="num">0.705</td><td class="num">0.564</td><td class="num win">0.056</td><td class="num win">12.7×</td><td class="num">1.25×</td></tr>
+      <tr><td>open, clear</td><td class="num">32</td><td class="num">0.030</td><td class="num bad">0.137</td><td class="num win">0.014</td><td class="num">2.1×</td><td class="num bad">0.22×</td></tr>
+      <tr><td>open, sparse</td><td class="num">8</td><td class="num">0.706</td><td class="num">0.694</td><td class="num win">0.522</td><td class="num">1.35×</td><td class="num">1.02×</td></tr>
+      <tr><td>partial, clear</td><td class="num">8</td><td class="num">0.804</td><td class="num">0.769</td><td class="num win">0.639</td><td class="num">1.26×</td><td class="num">1.05×</td></tr>
+      <tr><td>closed, dense</td><td class="num">32</td><td class="num">0.698</td><td class="num bad">0.828</td><td class="num">0.683</td><td class="num">1.02×</td><td class="num bad">0.84×</td></tr>
+      <tr><td>acoustic inclusions</td><td class="num">16</td><td class="num">0.241</td><td class="num bad">0.557</td><td class="num">0.223</td><td class="num">1.08×</td><td class="num bad">0.44×</td></tr>
+      <tr><td>The Well maze</td><td class="num">32</td><td class="num">0.393</td><td class="num bad">0.652</td><td class="num bad">0.410</td><td class="num bad">0.96×</td><td class="num bad">0.61×</td></tr>
+    </tbody>
+  </table></div>
+  <p><strong>shifted POD 在我们测的每一个波场上都没赢过 plain POD</strong>：小预算下略有帮助
+  （1.02–1.25×），大预算下明显更差（0.19–0.88×）。刚性平移是波场的错误变换——
+  膨胀波前无法用平移对齐，而把 rank 拆给多个坐标系又摊薄了每个的表达力。</p>
+  <div class="tablewrap"><table>
+    <caption>换成"等精度需要几个分量"更能说明问题。</caption>
+    <thead><tr><th>场</th><th class="num">我们 R=4 的误差</th><th class="num">plain POD 需要 R≈</th><th class="num">压缩倍数</th></tr></thead>
+    <tbody>
+      <tr><td>open, clear</td><td class="num">0.056</td><td class="num">24.8</td><td class="num win">6.2×</td></tr>
+      <tr><td>partial, clear</td><td class="num">0.706</td><td class="num">13.8</td><td class="num">3.4×</td></tr>
+      <tr><td>open, sparse</td><td class="num">0.602</td><td class="num">12.1</td><td class="num">3.0×</td></tr>
+      <tr><td>closed, dense</td><td class="num">0.909</td><td class="num">6.4</td><td class="num">1.6×</td></tr>
+      <tr><td>acoustic inclusions</td><td class="num">0.565</td><td class="num">4.9</td><td class="num">1.2×</td></tr>
+      <tr><td>The Well maze</td><td class="num">0.855</td><td class="num">4.0</td><td class="num bad">1.0×</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout"><div class="hd">如实记录两个负值</div>
+    <p>maze 上我们比 plain POD <strong>略差</strong>（0.96–0.99×），inclusions 在 R=32 上也略差（0.92×）。
+    两者都落在判据预测的"收益≈1"区间内，正负抖动属于预期——但不能说成"没有变差"。</p></div>
+  <figure><img src="{{FIG11}}" alt="六个场下三种方法误差随参数预算的曲线">
+    <figcaption><b>图 11.</b> 等预算重构误差。黄色（shifted POD）在每个波场上都没能赢过红色（plain POD）。</figcaption>
+  </figure>
+
   <div class="callout"><div class="hd">实现教训（保留以免后来者重蹈）</div>
     <p>最初用 Adam 拟合该模型，在较大预算上<strong>发散</strong>（误差 7、30、91）。载波之间远非正交，
     一阶方法条件数极差。换成交替最小二乘后单调收敛。这不是方法的性质，是优化器的性质。</p></div>

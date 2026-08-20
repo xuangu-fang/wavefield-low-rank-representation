@@ -428,6 +428,48 @@ def figure_learned_baselines() -> None:
     plt.close(fig)
 
 
+def figure_shifted_pod() -> None:
+    payload = load("exp16_shifted_pod.json")
+    if not payload:
+        return
+    rows = payload["rows"]
+    order = [
+        "open_clear", "open_sparse", "partial_clear",
+        "closed_dense", "acoustic_inclusions", "well_maze",
+    ]
+    regimes = [r for r in order if any(row["regime"] == r for row in rows)]
+    budgets = payload["budgets"]
+    series = [
+        ("plain_pod", "plain POD", PALETTE["raw"], "o-"),
+        ("best_shifted_pod", "shifted POD (best of $K$=1,2,3)", PALETTE["straight"], "^-"),
+        ("carrier_pod", "carrier alignment (ours)", PALETTE["eikonal"], "s-"),
+    ]
+    columns = 3
+    fig, axes = plt.subplots(
+        2, columns, figsize=(3.4 * columns, 6.2), sharex=True, sharey=True
+    )
+    for axis, regime in zip(axes.ravel(), regimes):
+        for key, label, color, style in series:
+            values = [
+                np.mean([r[key] for r in rows if r["regime"] == regime and r["budget"] == b])
+                for b in budgets
+            ]
+            axis.plot(budgets, values, style, color=color, ms=5, lw=1.5, label=label)
+        axis.set_xscale("log")
+        axis.set_yscale("log")
+        axis.minorticks_off()
+        axis.set_xticks(budgets, [str(b) for b in budgets])
+        axis.set_title(regime.replace("_", ", "), fontsize=9)
+    for axis in axes[-1]:
+        axis.set_xlabel("parameter budget $R$")
+    for axis in axes[:, 0]:
+        axis.set_ylabel("relative reconstruction error")
+    axes[0, 0].legend(fontsize=8, loc="lower left")
+    fig.tight_layout()
+    fig.savefig(FIGURES / "fig11_shifted_pod.png")
+    plt.close(fig)
+
+
 def figure_fields() -> None:
     from wave_lr.fdtd import MediumSpec
     from wave_lr.fields import fdtd_case, load_well_acoustic
@@ -485,6 +527,7 @@ def main() -> None:
     figure_multicarrier()
     figure_estimated_carriers()
     figure_learned_baselines()
+    figure_shifted_pod()
     figure_fields()
     print(f"figures written to {FIGURES}")
 
