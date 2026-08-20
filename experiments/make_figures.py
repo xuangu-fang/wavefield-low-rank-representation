@@ -530,6 +530,65 @@ def figure_learned_representation() -> None:
     plt.close(fig)
 
 
+def figure_identifiability() -> None:
+    payload = load("exp21_identifiability_law.json")
+    if not payload:
+        return
+    rows = payload["rows"]
+    strides = payload["strides"]
+    fig, axes = plt.subplots(1, 2, figsize=(10.2, 3.9))
+
+    for coordinate, color, label in (
+        ("raw", PALETTE["raw"], "raw field"),
+        ("aligned", PALETTE["eikonal"], "carrier-aligned"),
+    ):
+        bounds, errors = [], []
+        for row in rows:
+            if row["coordinate"] != coordinate:
+                continue
+            for bound, error in zip(row["bounds"], row["measured_errors"]):
+                if bound > 1e-6 and np.isfinite(error):
+                    bounds.append(bound)
+                    errors.append(error)
+        axes[0].loglog(bounds, errors, "o", ms=3.2, alpha=0.4, mew=0, color=color, label=label)
+    limits = [8e-3, 2.0]
+    axes[0].plot(limits, limits, "-", color="#333333", lw=1.1, label="error = bound")
+    axes[0].set_xlim(limits)
+    axes[0].set_ylim(limits)
+    axes[0].set_xlabel("identifiability bound  $\\sqrt{E_{>k_N}}$  (one FFT, no model)")
+    axes[0].set_ylabel("measured reconstruction error")
+    axes[0].set_title("the bound holds and is nearly tight", fontsize=9)
+    axes[0].legend(fontsize=8, loc="upper left")
+
+    chosen = ["fdtd_open_clear", "fdtd_open_sparse", "fdtd_closed_dense"]
+    styles = {"fdtd_open_clear": "-", "fdtd_open_sparse": "--", "fdtd_closed_dense": ":"}
+    for dataset in chosen:
+        for coordinate, color in (("raw", PALETTE["raw"]), ("aligned", PALETTE["eikonal"])):
+            subset = [
+                r for r in rows if r["dataset"] == dataset and r["coordinate"] == coordinate
+            ]
+            if not subset:
+                continue
+            values = np.nanmean([r["measured_errors"] for r in subset], axis=0)
+            axes[1].plot(
+                strides, values, styles[dataset], color=color, lw=1.6,
+                marker="o", ms=3.5,
+                label=f"{dataset.replace('fdtd_', '').replace('_', ', ')} · {coordinate}",
+            )
+    axes[1].axhline(1.0, color="#666666", lw=0.9, ls=":")
+    axes[1].set_xscale("log")
+    axes[1].set_yscale("log")
+    axes[1].minorticks_off()
+    axes[1].set_xticks(strides, [str(s) for s in strides])
+    axes[1].set_xlabel("sensor array spacing (pixels)")
+    axes[1].set_ylabel("reconstruction error")
+    axes[1].set_title("the carrier moves the whole curve", fontsize=9)
+    axes[1].legend(fontsize=6.6, ncol=1, loc="lower right")
+    fig.tight_layout()
+    fig.savefig(FIGURES / "fig13_identifiability.png")
+    plt.close(fig)
+
+
 def figure_fields() -> None:
     from wave_lr.fdtd import MediumSpec
     from wave_lr.fields import fdtd_case, load_well_acoustic
@@ -589,6 +648,7 @@ def main() -> None:
     figure_learned_baselines()
     figure_shifted_pod()
     figure_learned_representation()
+    figure_identifiability()
     figure_fields()
     print(f"figures written to {FIGURES}")
 
