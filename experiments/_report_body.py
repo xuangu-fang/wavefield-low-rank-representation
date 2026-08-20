@@ -419,6 +419,41 @@ BODY = """
     真实的地震、超声、雷达场景大多是吸收/开放介质，即收益最大的区间。</p></div>
 </section>
 
+  <h3>9.2&nbsp;&nbsp;WaveBench：判据说别做，实测也确实没用</h3>
+  <p>WaveBench 的 time-harmonic 部分是本项目最想要的公开数据形态：<strong>同一批非均匀介质在 4 个频率上的
+  Helmholtz 解，并附带 wavespeed</strong>，因此可以建可部署的 eikonal 载波并在同一介质上扫频率。</p>
+  <div class="callout good"><div class="hd">取数方式值得记录</div>
+    <p>整个数据集是一个 75 GB 的 zip，但 Zenodo 支持 HTTP range 请求，而 FFCV <code>.beton</code>
+    容器把每个样本存在<strong>显式字节偏移</strong>上——因此文件的一个<strong>前缀</strong>就足以读出落在其中的
+    全部样本。实际只取了 <strong>2.2 GB</strong>（四个频率各约 1000 个可读样本），而不是 75 GB。
+    <code>ffcv</code> 本体需要编译工具链，所以 <code>src/wave_lr/beton.py</code> 是按官方格式定义
+    重写的纯 NumPy 读取器。</p></div>
+  <p><strong>两项前置验证都通过</strong>：同一 index 在四个频率文件里的 wavespeed 逐元素完全相同
+  （max|Δc| = 0.0），确实是"同一介质 × 四个频率"；容器不记录 ω 与网格间距，但载波只需要其乘积
+  <code>κ = ω·spacing</code>，从场自身相位梯度标定出的 κ 比值为 <strong>1.00 / 1.51 / 2.08 / 4.34</strong>，
+  与文件名标称的 1 / 1.5 / 2 / 4 一致。实测波长 63.6 / 41.6 / 29.6 / <strong>14.2</strong> 像素。</p>
+  <div class="tablewrap"><table>
+    <caption>raw / aligned 增益，&gt;1 才是有帮助。方向完全符合预期，幅度不足。</caption>
+    <thead><tr><th class="num">ω 标称</th><th class="num">波长(px)</th><th class="num">p=0.005</th><th class="num">p=0.01</th><th class="num">p=0.02</th><th class="num">p=0.05</th><th class="num">p=0.10</th></tr></thead>
+    <tbody>
+      <tr><td class="num">10</td><td class="num">63.6</td><td class="num bad">0.85</td><td class="num bad">0.74</td><td class="num bad">0.67</td><td class="num bad">0.69</td><td class="num bad">0.74</td></tr>
+      <tr><td class="num">15</td><td class="num">41.6</td><td class="num bad">0.94</td><td class="num bad">0.87</td><td class="num bad">0.75</td><td class="num bad">0.64</td><td class="num bad">0.62</td></tr>
+      <tr><td class="num">20</td><td class="num">29.6</td><td class="num bad">0.97</td><td class="num bad">0.93</td><td class="num bad">0.83</td><td class="num bad">0.67</td><td class="num bad">0.60</td></tr>
+      <tr><td class="num">40</td><td class="num">14.2</td><td class="num">1.00</td><td class="num bad">0.99</td><td class="num bad">0.96</td><td class="num bad">0.88</td><td class="num bad">0.76</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout"><div class="hd">判据事先就给出了这个答案</div>
+    <p>四个频率构成的 <code>(x,ω)</code> 矩阵实测<strong>满秩 4</strong>（对齐前后都是 4，rank-1 残差
+    0.796 → 0.801，对齐毫无作用）。满秩意味着 <code>Λ ≥ (rank−1)/B = 17</code>，而区域穿越时间约 38.8，
+    故<strong>占据比 ≥ 0.44</strong>。对照第 11c 节的标定（0.14 → 4.50；0.38 → 1.10；0.48 → 1.04），
+    0.44 落在"无收益"区间——预测与实测一致。物理原因很直白：介质对比度 <code>c ∈ [1.5, 5]</code>
+    是<strong>强散射</strong>，首达之外的多次散射携带了大部分能量。</p></div>
+  <p><strong>这条负结果反而强化了 benchmark 覆盖的论点</strong>：测过的四个公开波动基准里，<strong>三个</strong>
+  （The Well acoustic maze、acoustic inclusions、WaveBench isotropic）都落在相位对齐必然失效的
+  强混响/强散射区间，只有 Helmholtz staircase 落在有利区间——而那里恰好拿到 9.8–11.5× 的等预算压缩。
+  <strong>"有利区间缺乏公开基准"这个缺口是真实存在的，不是我们没找。</strong></p>
+</section>
+
 <section id="c10">
   <h2><span class="n">10 / 负结果</span>跨频外推在 staircase 上全线失败</h2>
   <p class="lede">在 16 个 ω、同一几何上做"低频段拟合 → 高频预测"：<strong>所有方法都 ≈ 或劣于零预测</strong>，
