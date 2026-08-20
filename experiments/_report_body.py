@@ -30,6 +30,7 @@ BODY = """
     <li><a href="#c11"><span class="n">11</span><span>理论补丁</span></a></li>
     <li><a href="#c115"><span class="n">11b</span><span>算子学习（弱）</span></a></li>
     <li><a href="#c12"><span class="n">12</span><span>下一步</span></a></li>
+    <li><a href="#cA"><span class="n">A</span><span>载波方法细节</span></a></li>
   </ol>
 </nav>
 
@@ -402,6 +403,68 @@ BODY = """
     任何在该副本上做的速度条件化实验都是无效的，需要重新下载官方配对文件。</p></div>
   <p>另外三条记录在 <code>docs/DATA_INTEGRITY.md</code>：staircase 的 y 轴在数组中反向存储；
   其 50 个时间步是 <code>e<sup>-iωt</sup></code> 的纯解析冗余；test split 的 3 条轨迹共用同一个源位置。</p>
+</section>
+
+<section id="cA">
+  <h2><span class="n">附录 A / 方法</span>载波 τ(x)：定义、算法、复杂度与通用性</h2>
+
+  <h3>A.1&nbsp;&nbsp;τ(x) 是什么，为什么恰好是它</h3>
+  <div class="formula">|∇τ(x)| = 1/c(x),        τ(源点) = 0</div>
+  <p>τ(x) 是波从源点到 x 的<strong>首达走时</strong>：沿最快路径（向高速区弯曲、绕过障碍）所需的最短时间，
+  等价于以 <code>ds/c(x)</code> 为度量的测地距离。</p>
+  <p>它不是启发式，而是波场高频渐近展开里的相位函数<em>本身</em>。把 <code>u = A(x)e<sup>iωτ(x)</sup></code>
+  代入 Helmholtz 方程并收集 <code>O(ω²)</code> 项：</p>
+  <div class="formula">ω²(1/c² − |∇τ|²)·A = 0    ⟹    |∇τ| = 1/c</div>
+  <p>因此 <code>e<sup>-iωτ</sup></code> 扣掉的正是几何光学那一项，剩下的是幅度与射线理论管不了的成分
+  （绕射、多次反射、散射）。这是整套做法的根据。</p>
+
+  <h3>A.2&nbsp;&nbsp;算法，与一个必须记录的精度陷阱</h3>
+  <p>Godunov 迎风格式，逐格点求解一个二次方程，反复扫描直至不再下降：</p>
+  <div class="formula">a = min(τ<sub>上</sub>, τ<sub>下</sub>),   b = min(τ<sub>左</sub>, τ<sub>右</sub>),   sh = spacing / c
+
+|a − b| ≥ sh :  τ = min(a,b) + sh
+否则         :  τ = (a + b + √(2·sh² − (a−b)²)) / 2</div>
+  <div class="callout"><div class="hd">陷阱</div>
+    <p>一阶格式在对角方向有约 <strong>15%</strong> 的走时误差，而第 6 节测出的容限是
+    <code>δτ &lt; 1/B</code>——这个误差足以让载波完全失效。修法是在源点附近播种解析解
+    （梯度奇点与误差都产生在那里），且播种取邻域内<strong>最慢</strong>的速度，
+    因此只可能高估；而扫描只降低数值，永远不会污染解。修正后最大误差降到 <strong>1.2%</strong>；
+    方箱上 eikonal 的直达走时与解析镜像源相差 <strong>0.005</strong>（记录长 6.0，即 0.1%）。</p></div>
+
+  <h3>A.3&nbsp;&nbsp;复杂度（实测，A100）</h3>
+  <div class="tablewrap"><table>
+    <caption>Fast sweeping 是 O(N)，N 为格点数。</caption>
+    <thead><tr><th>网格</th><th class="num">单个介质</th><th class="num">批量摊薄</th></tr></thead>
+    <tbody>
+      <tr><td>64×64</td><td class="num">490 ms</td><td class="num win">1.8 ms</td></tr>
+      <tr><td>128×128</td><td class="num">306 ms</td><td class="num win">5.8 ms</td></tr>
+      <tr><td>256×256</td><td class="num">—</td><td class="num win">32 ms</td></tr>
+      <tr><td>1024×256</td><td class="num">1.6 s</td><td class="num win">356 ms</td></tr>
+    </tbody>
+  </table></div>
+  <p>对照：同一 128² 网格上跑一次 FDTD 正演 <strong>4.2 s</strong>，做一次场矩阵 SVD <strong>1.8 s</strong>。
+  <strong>eikonal 比它所服务的那一步便宜三个数量级</strong>，不构成实际开销。</p>
+
+  <h3>A.4&nbsp;&nbsp;通用性</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>变化的量</th><th>是否重算</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td><strong>频率 ω</strong></td><td><strong>不需要</strong></td><td style="text-align:left">τ 与频率无关；载波 <code>e<sup>-2πifτ(x)</sup></code> 里 f 只是标量乘子。<strong>一次求解服务整个频带</strong>——这正是频率轴上秩会塌缩的结构性原因</td></tr>
+      <tr><td>源位置</td><td>每源一次</td><td style="text-align:left">staircase 的 26 个源共几分钟</td></tr>
+      <tr><td>介质 / 样本</td><td>每个一次</td><td style="text-align:left">实现直接接受 (B,H,W) 批量</td></tr>
+      <tr><td>边界条件</td><td><strong>算法不变</strong></td><td style="text-align:left">见下</td></tr>
+    </tbody>
+  </table></div>
+  <p><strong>边界条件最容易误解</strong>：eikonal 只给<em>首达</em>——它天然处理非均匀 <code>c(x)</code>、
+  障碍物（波自动绕行）与吸收边界；但它<em>不给反射</em>，反射是额外的 <code>τ<sub>m</sub></code>，
+  需要额外载波（方箱由镜像源精确构造，一般情况由数据驱动的虚源扫描估计）。
+  所以<strong>边界条件决定的是"需要几个载波"，而不是"eikonal 这一步能否使用"</strong>——
+  而这正是 <code>Λ<sub>rel</sub></code> 判据回答的问题。</p>
+  <p><strong>前提</strong>：需要已知 <code>c(x)</code> 与源位置。正问题/监测场景下两者给定；
+  反问题中可退回到从数据拾取初至走时，实测略差但同样有效。
+  <strong>已实测的失效条件</strong>：色散（trapped mode 的模式截止，第 10 节）与强混响
+  （<code>Λ<sub>rel</sub> ≈ Λ<sub>abs</sub></code>，但判据会提前告知）。
+  3D 与非结构网格上 fast sweeping 同样适用；本实现目前是 2D 规则网格。</p>
 </section>
 
 <footer>
