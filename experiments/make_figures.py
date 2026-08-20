@@ -589,6 +589,96 @@ def figure_identifiability() -> None:
     plt.close(fig)
 
 
+def figure_not_capacity() -> None:
+    payload = load("exp22_no_estimator_beats_it.json")
+    if not payload:
+        return
+    rows = payload["rows"]
+    capacity = payload["summary"]["capacity_sweep"]
+    fig, axes = plt.subplots(1, 2, figsize=(9.8, 3.7))
+
+    order = sorted(capacity.items(), key=lambda kv: kv[1]["parameters"])
+    fourier = [(v["parameters"], v["mean_test"], v["mean_train"])
+               for k, v in order if k.startswith("fourier")]
+    params = [p for p, _, _ in fourier]
+    axes[0].semilogx(params, [t for _, t, _ in fourier], "o-", ms=6, lw=1.8,
+                     color=PALETTE["raw"], label="test error")
+    axes[0].semilogx(params, [max(tr, 1e-8) for _, _, tr in fourier], "s--", ms=5, lw=1.5,
+                     color=PALETTE["eikonal"], label="training error")
+    for key, label, color in (
+        ("linear", "linear interp. (0 parameters)", PALETTE["data_pick"]),
+        ("nearest", "nearest neighbour", "#9AA5B1"),
+    ):
+        value = float(np.mean([r[f"{key}_test"] for r in rows]))
+        axes[0].axhline(value, color=color, lw=1.5, ls=":", label=f"{label}: {value:.3f}")
+    axes[0].set_yscale("log")
+    axes[0].set_ylim(3e-8, 6.0)
+    axes[0].set_xlabel("network parameters")
+    axes[0].set_ylabel("complex NRMSE")
+    axes[0].set_title("128$\\times$ more capacity, 3% less error", fontsize=9)
+    axes[0].legend(fontsize=7.5, loc="center left", framealpha=0.9, frameon=True)
+    axes[0].annotate(
+        "training error is at machine precision throughout",
+        (params[0], 2e-7), fontsize=7.5, color=PALETTE["eikonal"], va="top",
+    )
+
+    labels, bounds, bests = [], [], []
+    for coordinate in ("raw", "aligned"):
+        subset = [r for r in rows if r["coordinate"] == coordinate]
+        labels.append(coordinate)
+        bounds.append(float(np.mean([r["bound"] for r in subset])))
+        bests.append(float(np.mean([r["best_test"] for r in subset])))
+    positions = np.arange(len(labels))
+    axes[1].bar(positions - 0.18, bounds, 0.34, color=PALETTE["straight"],
+                label="identifiability bound", linewidth=0)
+    axes[1].bar(positions + 0.18, bests, 0.34, color=PALETTE["eikonal"],
+                label="best of six estimators", linewidth=0)
+    axes[1].set_xticks(positions, ["raw field", "carrier-aligned"])
+    axes[1].set_ylabel("complex NRMSE")
+    axes[1].set_title("changing coordinates moves both", fontsize=9)
+    axes[1].legend(fontsize=8)
+    fig.tight_layout()
+    fig.savefig(FIGURES / "fig14_not_capacity.png")
+    plt.close(fig)
+
+
+def figure_learned_bound() -> None:
+    payload = load("exp24_learned_identifiability.json")
+    if not payload:
+        return
+    rows = payload["rows"]
+    regimes = ["open_clear", "open_sparse", "partial_clear", "closed_dense"]
+    entries = [
+        ("none", "no carrier", "#9AA5B1"),
+        ("eikonal_corrupted", "physics, corrupted", PALETTE["raw"]),
+        ("eikonal", "physics (eikonal)", PALETTE["straight"]),
+        ("learned_scratch", "learned, no physics", PALETTE["eikonal"]),
+        ("learned_repair", "corrupted + learning", PALETTE["data_pick"]),
+    ]
+    fig, axis = plt.subplots(figsize=(7.4, 3.7))
+    positions = np.arange(len(regimes))
+    width = 0.16
+    for index, (key, label, color) in enumerate(entries):
+        values = [
+            np.mean([
+                r["bound_s6"] for r in rows
+                if r["regime"] == regime and r["coordinate"] == key
+            ])
+            for regime in regimes
+        ]
+        axis.bar(positions + (index - 2) * width, values, width * 0.92,
+                 color=color, label=label, linewidth=0)
+    axis.set_xticks(positions, [r.replace("_", ",\n") for r in regimes], fontsize=8.5)
+    axis.set_ylabel("identifiability bound at array spacing 6")
+    axis.set_title(
+        "the missing information can be learned as well as supplied", fontsize=9
+    )
+    axis.legend(fontsize=7.5, ncol=2)
+    fig.tight_layout()
+    fig.savefig(FIGURES / "fig15_learned_bound.png")
+    plt.close(fig)
+
+
 def figure_fields() -> None:
     from wave_lr.fdtd import MediumSpec
     from wave_lr.fields import fdtd_case, load_well_acoustic
@@ -649,6 +739,8 @@ def main() -> None:
     figure_shifted_pod()
     figure_learned_representation()
     figure_identifiability()
+    figure_not_capacity()
+    figure_learned_bound()
     figure_fields()
     print(f"figures written to {FIGURES}")
 
