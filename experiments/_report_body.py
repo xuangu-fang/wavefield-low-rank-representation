@@ -595,7 +595,6 @@ BODY = """
     <p>主流公开波动 benchmark 绝大多数落在<strong>混响区间</strong>，而这恰恰是相位对齐类方法必然失效的区间。
     这解释了这类方法在 benchmark 上长期让人失望的历史，也说明 benchmark 覆盖存在系统性缺口——
     真实的地震、超声、雷达场景大多是吸收/开放介质，即收益最大的区间。</p></div>
-</section>
 
   <h3>9.2&nbsp;&nbsp;WaveBench：判据说别做，实测也确实没用</h3>
   <p>WaveBench 的 time-harmonic 部分是本项目最想要的公开数据形态：<strong>同一批非均匀介质在 4 个频率上的
