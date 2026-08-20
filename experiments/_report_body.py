@@ -20,6 +20,7 @@ BODY = """
     <li><a href="#c02"><span class="n">00b</span><span>不是容量</span></a></li>
     <li><a href="#c03"><span class="n">00c</span><span>把界当损失</span></a></li>
     <li><a href="#c04"><span class="n">00d</span><span>与采样定理的关系</span></a></li>
+    <li><a href="#c05"><span class="n">00e</span><span>留出验证</span></a></li>
     <li><a href="#c1"><span class="n">01</span><span>三条主张</span></a></li>
     <li><a href="#c2"><span class="n">02</span><span>秩定律成立</span></a></li>
     <li><a href="#c3"><span class="n">03</span><span>带宽，不是频率</span></a></li>
@@ -204,6 +205,28 @@ BODY = """
     <strong>界描述可辨识性，不描述估计器。</strong>当场远低于 Nyquist 时界趋于 0，
     而线性插值仍有自身的截断误差，此时界成立但无信息量。
     界有意义的区间是采样接近或超过 Nyquist 的时候——也正是实际会遇到的区间。</p></div>
+</section>
+
+<section id="c05">
+  <h2><span class="n">00e / 留出验证</span>把整套流程冻住，换一批没见过的介质</h2>
+  <p class="lede">本项目的每一个测量决定——规则阵列、裁剪而非补零、Tukey 窗及其宽度、能量分位——
+  都是<strong>看着前面那些场做出来的</strong>。这正是结论可能只是自身调参产物的情形。
+  因此：<strong>一个参数都不调</strong>，流程整体冻结，换 12 个 seed 在仓库任何地方都没出现过的介质。</p>
+  <div class="tablewrap"><table>
+    <caption>252 组测量，全部在留出介质上。</caption>
+    <thead><tr><th>检验的主张</th><th>留出结果</th></tr></thead>
+    <tbody>
+      <tr><td><strong>C1 界成立</strong></td><td style="text-align:left">线性插值打破 <strong>4.8%</strong>；一百万参数网络打破 <strong>0.0%</strong></td></tr>
+      <tr><td><strong>C2 不是容量</strong></td><td style="text-align:left">一百万参数网络 <strong>0.995</strong>，零参数线性插值 <strong>0.759</strong></td></tr>
+      <tr><td><strong>C3 信息可学</strong></td><td style="text-align:left">m=6 的界：无载波 0.993 → 物理 <strong>0.552</strong> → <strong>纯学习 0.554</strong></td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout good"><div class="hd">三条主张全部复现</div>
+    <p><code>error_vs_bound</code> 在留出集上 R²=0.79、斜率 0.73，与开发集（R²=0.77、斜率 0.66）一致。
+    特别是 C3：<strong>在从未见过的介质上，不给介质、不给源、不跑求解器</strong>，
+    自监督学出的坐标把界降到 0.554，而用真实介质跑 eikonal 得到 0.552——两者实质相同。</p></div>
+  <p><strong>如实记录</strong>：留出集上"学出来的坐标释放了可辨识性但线性插值没有全部兑现"
+  这一差距依然存在（误差 0.721 vs 物理的 0.661），与前一节观察到的一致。</p>
 </section>
 
 <section id="c1">
