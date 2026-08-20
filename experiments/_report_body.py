@@ -63,12 +63,12 @@ BODY = """
     <tbody>
       <tr><td>open, clear</td><td>raw</td><td class="num">0.022</td><td class="num">0.091</td><td class="num">0.445</td><td class="num bad">0.997</td><td class="num bad">0.999</td><td class="num bad">1.000</td><td class="num bad">1.000</td></tr>
       <tr><td>open, clear</td><td><strong>aligned</strong></td><td class="num win">0.014</td><td class="num win">0.032</td><td class="num win">0.040</td><td class="num win">0.062</td><td class="num win">0.102</td><td class="num win">0.170</td><td class="num win">0.254</td></tr>
-      <tr><td>open, sparse</td><td>raw</td><td class="num">0.298</td><td class="num">0.486</td><td class="num">0.642</td><td class="num bad">0.991</td><td class="num bad">0.997</td><td class="num bad">0.999</td><td class="num bad">0.999</td></tr>
-      <tr><td>open, sparse</td><td>aligned</td><td class="num">0.352</td><td class="num">0.490</td><td class="num">0.536</td><td class="num">0.594</td><td class="num">0.639</td><td class="num">0.674</td><td class="num">0.715</td></tr>
-      <tr><td>closed, dense</td><td>raw</td><td class="num">0.455</td><td class="num">0.689</td><td class="num">0.828</td><td class="num bad">0.987</td><td class="num bad">0.995</td><td class="num bad">0.998</td><td class="num bad">0.999</td></tr>
-      <tr><td>closed, dense</td><td>aligned</td><td class="num">0.566</td><td class="num">0.768</td><td class="num">0.818</td><td class="num">0.878</td><td class="num">0.901</td><td class="num">0.926</td><td class="num">0.953</td></tr>
-      <tr><td>The Well maze</td><td>raw</td><td class="num">0.637</td><td class="num bad">0.974</td><td class="num bad">0.994</td><td class="num bad">0.999</td><td class="num bad">1.000</td><td class="num bad">1.000</td><td class="num bad">1.000</td></tr>
-      <tr><td>The Well maze</td><td>aligned</td><td class="num">0.756</td><td class="num">0.890</td><td class="num">0.946</td><td class="num bad">0.987</td><td class="num bad">0.994</td><td class="num bad">0.998</td><td class="num bad">0.999</td></tr>
+      <tr><td>open, sparse</td><td>raw</td><td class="num">0.245</td><td class="num">0.393</td><td class="num">0.605</td><td class="num bad">0.993</td><td class="num bad">0.998</td><td class="num bad">0.999</td><td class="num bad">1.000</td></tr>
+      <tr><td>open, sparse</td><td>aligned</td><td class="num">0.276</td><td class="num">0.443</td><td class="num">0.489</td><td class="num">0.556</td><td class="num">0.596</td><td class="num">0.637</td><td class="num">0.685</td></tr>
+      <tr><td>closed, dense</td><td>raw</td><td class="num">0.439</td><td class="num">0.655</td><td class="num">0.784</td><td class="num bad">0.990</td><td class="num bad">0.997</td><td class="num bad">0.999</td><td class="num bad">0.999</td></tr>
+      <tr><td>closed, dense</td><td>aligned</td><td class="num">0.524</td><td class="num">0.738</td><td class="num">0.796</td><td class="num">0.860</td><td class="num">0.886</td><td class="num">0.911</td><td class="num">0.937</td></tr>
+      <tr><td>The Well maze</td><td>raw</td><td class="num">0.627</td><td class="num bad">0.972</td><td class="num bad">0.993</td><td class="num bad">0.999</td><td class="num bad">1.000</td><td class="num bad">1.000</td><td class="num bad">1.000</td></tr>
+      <tr><td>The Well maze</td><td>aligned</td><td class="num">0.736</td><td class="num">0.878</td><td class="num">0.937</td><td class="num bad">0.985</td><td class="num bad">0.994</td><td class="num bad">0.998</td><td class="num bad">0.999</td></tr>
     </tbody>
   </table></div>
   <p>原始坐标下，<strong>间距一到 6 像素可辨识性就已经塌到 1.0</strong>（等于零预测）；
@@ -78,7 +78,7 @@ BODY = """
     <thead><tr><th>区间</th><th class="num">raw</th><th class="num">aligned</th><th class="num">省下</th></tr></thead>
     <tbody>
       <tr><td>open, clear</td><td class="num">9.4%</td><td class="num win">0.39%</td><td class="num win">24×</td></tr>
-      <tr><td>open, sparse</td><td class="num">18.8%</td><td class="num">22.2%</td><td class="num bad">0.8×</td></tr>
+      <tr><td>open, sparse</td><td class="num">15.8%</td><td class="num">15.1%</td><td class="num bad">1.0×</td></tr>
       <tr><td>partial, clear</td><td class="num">9.4%</td><td class="num">15.5%</td><td class="num bad">0.6×</td></tr>
       <tr><td>closed, dense</td><td class="num" colspan="2">两者都达不到</td><td class="num">—</td></tr>
     </tbody>
@@ -111,22 +111,22 @@ BODY = """
     <caption>六个估计器，同样的规则阵列、同样的场，48 组设置。</caption>
     <thead><tr><th>估计器</th><th class="num">参数量</th><th class="num">训练 NRMSE</th><th class="num">测试 NRMSE</th></tr></thead>
     <tbody>
-      <tr><td>Fourier-feature MLP（小）</td><td class="num">8 192</td><td class="num">1.5×10⁻⁷</td><td class="num bad">0.969</td></tr>
+      <tr><td>Fourier-feature MLP（小）</td><td class="num">8 192</td><td class="num">1.4×10⁻⁷</td><td class="num bad">0.970</td></tr>
       <tr><td>Fourier-feature MLP（中）</td><td class="num">196 608</td><td class="num">1.2×10⁻⁷</td><td class="num bad">0.958</td></tr>
       <tr><td>Fourier-feature MLP（大）</td><td class="num">1 048 576</td><td class="num">1.2×10⁻⁷</td><td class="num bad">0.940</td></tr>
-      <tr><td>SIREN</td><td class="num">196 608</td><td class="num">7.5×10⁻⁴</td><td class="num">0.899</td></tr>
+      <tr><td>SIREN</td><td class="num">196 608</td><td class="num">7.2×10⁻⁴</td><td class="num">0.900</td></tr>
       <tr><td>最近邻</td><td class="num">—</td><td class="num">—</td><td class="num">0.934</td></tr>
-      <tr><td><strong>线性插值（零参数）</strong></td><td class="num">—</td><td class="num">—</td><td class="num win">0.806</td></tr>
+      <tr><td><strong>线性插值（零参数）</strong></td><td class="num">—</td><td class="num">—</td><td class="num win">0.807</td></tr>
     </tbody>
   </table></div>
   <div class="callout good"><div class="hd">三条读数</div>
-    <p><strong>1.</strong> 训练误差恒为 10⁻⁷，测试误差在 <strong>128 倍</strong>容量跨度上只从 0.969 变到 0.940
+    <p><strong>1.</strong> 训练误差恒为 10⁻⁷，测试误差在 <strong>128 倍</strong>容量跨度上只从 0.970 变到 0.940
     （<strong>3%</strong>）。网络把传感器拟合到机器精度，仍然填不出中间——不是欠拟合，也不是欠训练。<br>
     <strong>2.</strong> <strong>零参数的线性插值打败了每一个网络</strong>，包括一百万参数那个；
-    48 组里它有 28 组是最优估计器。容量替代不了信息。<br>
-    <strong>3.</strong> <strong>换坐标系才有用</strong>：界从 0.766 降到 0.527，所有估计器能达到的最好成绩
+    72 组里它有多数组是最优估计器。容量替代不了信息。<br>
+    <strong>3.</strong> <strong>换坐标系才有用</strong>：界从 0.767 降到 0.528，所有估计器能达到的最好成绩
     跟着从 0.887 降到 0.604——<strong>没有增加任何一次测量</strong>。</p></div>
-  <p>界在 48 组里被打破 4 次（8.3%），线性插值平均是界的 1.48 倍——即界不仅成立，而且接近可达。
+  <p>界在 <strong>72</strong> 组里被打破 6 次（8.3%），线性插值平均是界的 1.48 倍——即界不仅成立，而且接近可达。
   这就是"可辨识性，而不是容量"这句话的全部经验内容。</p>
   <figure><img src="{{FIG14}}" alt="左：测试与训练误差随参数量；右：两种坐标系下的界与最好估计器">
     <figcaption><b>图 1.</b> 左：训练误差恒在机器精度，测试误差跨 128 倍容量几乎不动，
@@ -145,13 +145,13 @@ BODY = """
     <caption>阵列间距 m=6，4 个区间 × 2 seed 平均。</caption>
     <thead><tr><th>坐标系</th><th class="num">界</th><th class="num">实测误差</th></tr></thead>
     <tbody>
-      <tr><td>无载波</td><td class="num bad">0.994</td><td class="num bad">1.112</td></tr>
-      <tr><td>eikonal（物理）</td><td class="num">0.533</td><td class="num win">0.634</td></tr>
-      <tr><td>eikonal 被粗糙误差破坏</td><td class="num bad">0.931</td><td class="num bad">1.123</td></tr>
-      <tr><td><strong>纯学习（无物理）</strong></td><td class="num win">0.528</td><td class="num">0.687</td></tr>
-      <tr><td><strong>学习修复被破坏的载波</strong></td><td class="num win">0.521</td><td class="num">0.688</td></tr>
-      <tr><td>学习（从正确物理出发）</td><td class="num win">0.521</td><td class="num">0.681</td></tr>
-      <tr><td><em>消融：改用频率轴目标</em></td><td class="num bad">0.644</td><td class="num bad">0.764</td></tr>
+      <tr><td>无载波</td><td class="num bad">0.994</td><td class="num bad">1.109</td></tr>
+      <tr><td>eikonal（物理）</td><td class="num">0.535</td><td class="num win">0.636</td></tr>
+      <tr><td>eikonal 被粗糙误差破坏</td><td class="num bad">0.927</td><td class="num bad">1.122</td></tr>
+      <tr><td><strong>纯学习（无物理）</strong></td><td class="num win">0.526</td><td class="num">0.688</td></tr>
+      <tr><td><strong>学习修复被破坏的载波</strong></td><td class="num win">0.525</td><td class="num">0.688</td></tr>
+      <tr><td>学习（从正确物理出发）</td><td class="num win">0.525</td><td class="num">0.684</td></tr>
+      <tr><td><em>消融：改用频率轴目标</em></td><td class="num bad">0.651</td><td class="num bad">0.769</td></tr>
     </tbody>
   </table></div>
   <div class="tablewrap"><table>
@@ -165,12 +165,12 @@ BODY = """
     </tbody>
   </table></div>
   <div class="callout good"><div class="hd">四条读数</div>
-    <p><strong>1.</strong> 纯学习在界上<strong>追平物理</strong>（0.528 vs 0.533）——不给介质、不给源位置、不跑求解器。<br>
+    <p><strong>1.</strong> 纯学习在界上<strong>追平物理</strong>（0.526 vs 0.535）——不给介质、不给源位置、不跑求解器。<br>
     <strong>2.</strong> 四个区间里学习在<strong>三个</strong>上追平或超过物理；物理明显更优的只有 open/clear。<br>
-    <strong>3.</strong> 学习把<strong>被破坏的载波修回来</strong>（0.931 → 0.521），甚至略优于正确的物理。<br>
-    <strong>4.</strong> <strong>目标必须与指标一致</strong>：改用频率轴目标只到 0.644，明显更差。</p></div>
+    <strong>3.</strong> 学习把<strong>被破坏的载波修回来</strong>（0.927 → 0.525），甚至略优于正确的物理。<br>
+    <strong>4.</strong> <strong>目标必须与指标一致</strong>：改用频率轴目标只到 0.651，明显更差。</p></div>
   <div class="callout"><div class="hd">如实记录一处不一致</div>
-    <p>学习把界降到与物理相同甚至更低，但实测误差仍略高（0.687 vs 0.634）。
+    <p>学习把界降到与物理相同甚至更低，但实测误差仍略高（0.688 vs 0.636）。
     即学出来的坐标<em>释放</em>了可辨识性，而线性插值没有把它全部兑现——
     这个差距属于估计器，不属于表征。</p></div>
   <figure><img src="{{FIG15}}" alt="四个区间下五种坐标系的可辨识性界柱状图">
