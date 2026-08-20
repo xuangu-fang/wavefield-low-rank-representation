@@ -735,17 +735,16 @@ BODY = """
 <section id="c12">
   <h2><span class="n">12 / 下一步</span>按优先级</h2>
   <ol class="steps">
-    <li><strong>把虚源模型推广到非均匀背景。</strong>目前虚源用的是常速背景下的
-      <code>|x−p|/c</code>；强速度反差介质需要用射线或 eikonal 走时表替代这一步。</li>
-    <li><strong>补上"有利区间"的公开 benchmark。</strong>目前只有自建 FDTD 在该区间，
-      需要一个可引用的公开开放介质数据（WaveBench 的部分任务，或官方配对的 OpenFWI 文件）。</li>
-    <li><strong>色散推广。</strong>把载波从 <code>2πfτ</code> 推广到一般 <code>φ(x,f)</code>（局部相位斜率估计）——
-      这是 staircase 的失败给出的明确方向。</li>
-    <li><strong>把算子学习做成真结论。</strong>目前 448 个训练介质远远不够，
-      两种目标都没解出任务；需要数量级更多的介质，才能判断对齐是否真的改善算子学习。</li>
-    <li><strong>接生成式残差。</strong>在 <code>Λ<sub>rel</sub></code> 大的区间低秩必然不够，
-      此时按 APEX 路线把对齐后的 residual 交给 flow / diffusion。
-      定律正好指出"什么时候必须上生成模型"。</li>
+    <li><strong>有利区间的公开 benchmark</strong>——最大的信誉缺口。测过的四个公开波动基准里
+      三个落在必然无效区间。要么找到可引用的开放介质公开数据，
+      要么把"覆盖缺口"本身作为 D&amp;B 贡献正式化（后者更可行）。</li>
+    <li><strong>跨介质 / 跨几何迁移</strong>——学出来的坐标目前是逐 case 拟合的，
+      没有验证过迁移。这是"表征"主张最自然的下一个检验。</li>
+    <li><strong>跨介质算子学习补到有结论</strong>——现在是弱阳性，需要数量级更多的训练介质。</li>
+    <li><strong>色散的完整处理</strong>——<code>φ(x,f)</code> 已证明有效（staircase 上 1.74×），
+      但没有系统扫过色散强度。</li>
+    <li><strong>接生成式残差</strong>——在 <code>Λ<sub>rel</sub></code> 大的区间低秩必然不够，
+      判据正好指出"什么时候必须上生成模型"。</li>
   </ol>
   <h3>顺带发现的数据完整性问题</h3>
   <div class="callout"><div class="hd">影响其他项目</div>
