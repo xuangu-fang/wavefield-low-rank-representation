@@ -679,6 +679,39 @@ def figure_learned_bound() -> None:
     plt.close(fig)
 
 
+def figure_amortised() -> None:
+    files = [
+        ("exp26_amortised_operator_open_128_240.json", "random scatterers\n→ unseen, same family"),
+        ("exp26_amortised_operator_single_open_128_512.json", "single inclusion\n→ unseen, same family"),
+        ("exp26_amortised_cross.json", "random scatterers\n→ single inclusion\n(across families)"),
+    ]
+    payloads = [(load(name), label) for name, label in files]
+    payloads = [(p, l) for p, l in payloads if p]
+    if not payloads:
+        return
+    entries = [
+        ("raw_bound", "no carrier", "#9AA5B1"),
+        ("eikonal_bound", "physics (a solver per medium)", PALETTE["straight"]),
+        ("amortised_scratch_bound", "amortised, no physics (one forward pass)", PALETTE["eikonal"]),
+        ("per_case_fitted_bound", "per-field fitting (ceiling)", PALETTE["data_pick"]),
+    ]
+    fig, axis = plt.subplots(figsize=(7.8, 3.8))
+    positions = np.arange(len(payloads))
+    width = 0.2
+    for index, (key, label, color) in enumerate(entries):
+        values = [p[key] for p, _ in payloads]
+        errors = [p.get(key.replace("_bound", "_bound_seed_std"), 0.0) for p, _ in payloads]
+        axis.bar(positions + (index - 1.5) * width, values, width * 0.9, yerr=errors,
+                 capsize=2.5, color=color, label=label, linewidth=0)
+    axis.set_xticks(positions, [label for _, label in payloads], fontsize=8.5)
+    axis.set_ylabel("identifiability bound on unseen media")
+    axis.set_title("the coordinates amortise, and transfer across medium families", fontsize=9)
+    axis.legend(fontsize=7.5)
+    fig.tight_layout()
+    fig.savefig(FIGURES / "fig16_amortised.png")
+    plt.close(fig)
+
+
 def figure_fields() -> None:
     from wave_lr.fdtd import MediumSpec
     from wave_lr.fields import fdtd_case, load_well_acoustic
@@ -741,6 +774,7 @@ def main() -> None:
     figure_identifiability()
     figure_not_capacity()
     figure_learned_bound()
+    figure_amortised()
     figure_fields()
     print(f"figures written to {FIGURES}")
 

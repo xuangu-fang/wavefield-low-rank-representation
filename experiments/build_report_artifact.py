@@ -233,6 +233,7 @@ FIGURE_SLOTS = {
     "{{FIG13}}": "fig13_identifiability.png",
     "{{FIG14}}": "fig14_not_capacity.png",
     "{{FIG15}}": "fig15_learned_bound.png",
+    "{{FIG16}}": "fig16_amortised.png",
 }
 
 from _report_body import BODY

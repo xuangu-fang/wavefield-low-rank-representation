@@ -57,6 +57,7 @@ def main() -> None:
     parser.add_argument("--test", type=int, default=32)
     parser.add_argument("--steps", type=int, default=3000)
     parser.add_argument("--warmup", type=int, default=600)
+    parser.add_argument("--seeds", type=int, default=3)
     args = parser.parse_args()
 
     import torch
@@ -153,16 +154,21 @@ def main() -> None:
 
     start = time.time()
     for use_warmup, label in ((False, "amortised_scratch"), (True, "amortised_warmstart")):
-        model, history = train_model(use_warmup)
-        with torch.no_grad():
-            predicted = (
-                model(inputs_t[torch.from_numpy(test_index).to(device)])[:, 0] * scale
-            ).cpu().numpy()
-        summary.update(evaluate([predicted[i] for i in range(len(test_index))], label))
-        summary[f"{label}_final_loss"] = history[-1] if history else float("nan")
+        per_seed = []
+        for seed in range(args.seeds):
+            model, history = train_model(use_warmup, seed=seed)
+            with torch.no_grad():
+                predicted = (
+                    model(inputs_t[torch.from_numpy(test_index).to(device)])[:, 0] * scale
+                ).cpu().numpy()
+            scored = evaluate([predicted[i] for i in range(len(test_index))], label)
+            per_seed.append(scored[f"{label}_bound"])
+        summary[f"{label}_bound"] = float(np.mean(per_seed))
+        summary[f"{label}_bound_seed_std"] = float(np.std(per_seed))
+        summary[f"{label}_per_seed"] = per_seed
         print(
-            f"{label}: test bound {summary[f'{label}_bound']:.3f} "
-            f"({time.time() - start:.0f}s)",
+            f"{label}: test bound {np.mean(per_seed):.3f} +- {np.std(per_seed):.3f} "
+            f"over {args.seeds} seeds ({time.time() - start:.0f}s)",
             flush=True,
         )
 
