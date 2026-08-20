@@ -29,6 +29,7 @@ BODY = """
     <li><a href="#c10"><span class="n">10</span><span>负结果</span></a></li>
     <li><a href="#c11"><span class="n">11</span><span>理论补丁</span></a></li>
     <li><a href="#c115"><span class="n">11b</span><span>算子学习（弱）</span></a></li>
+    <li><a href="#c117"><span class="n">11c</span><span>通用性边界</span></a></li>
     <li><a href="#c12"><span class="n">12</span><span>下一步</span></a></li>
     <li><a href="#cA"><span class="n">A</span><span>载波方法细节</span></a></li>
   </ol>
@@ -469,6 +470,54 @@ BODY = """
     （中位 test NRMSE 0.36–0.45）。这只支持一个弱得多的版本：在同等（不足的）数据下，
     对齐目标一致地更容易学。要变成真结论需要数量级更多的训练介质——
     <strong>这是目前最清楚的一个待办项。</strong></p></div>
+</section>
+
+<section id="c117">
+  <h2><span class="n">11c / 通用性</span>定律走得多远：一个收窄而非扩张的结论</h2>
+  <p class="lede">自由度计数的推导里没有出现"波"这个字，所以 <code>rank ≤ B·Λ</code> 原则上对任何时空场成立。
+  用完全相同的流程测了五个<strong>公开录制的非波动流场</strong>（cylinder wake、Kuramoto–Sivashinsky、
+  Kolmogorov 湍流、active matter、PDEBench 反应扩散），加上一个<strong>合成的非波动瞬态输运</strong>族
+  （平流—扩散移动斑块，扩散系数可调）。载波延迟全部从数据估计，不用任何物理。</p>
+  <div class="callout good"><div class="hd">结论一：界是普适的</div>
+    <p>100+ 次测量，<strong>违反率 0.0%</strong>——波动与非波动，秩从未超过 <code>B·Λ</code>。</p></div>
+  <div class="tablewrap"><table>
+    <caption>结论二：界只在波场上是紧的。非波动场上平均松 2.6 倍。</caption>
+    <thead><tr><th></th><th class="num">拟合斜率</th><th class="num">R²</th><th class="num">中位相对误差</th></tr></thead>
+    <tbody>
+      <tr><td>波场</td><td class="num win">0.965</td><td class="num win">0.952</td><td class="num win">0.17</td></tr>
+      <tr><td>非波动场</td><td class="num">0.739</td><td class="num">0.875</td><td class="num bad">1.65</td></tr>
+    </tbody>
+  </table></div>
+  <p>约束非波动场的不是时间占据，而是<strong>空间相干性</strong>——即第 11 节修正项
+  <code>rank ≤ min(B·Λ, rank(G))</code> 里的第二项。实测 <code>rank/(B·Λ)</code>：混响波场 0.92、
+  Kolmogorov 湍流 0.78（空间弥散，界紧）；active matter 0.11、反应扩散 0.17（空间高度相干，界松）。</p>
+  <div class="tablewrap"><table>
+    <caption>结论三：对齐只对"瞬态"输运有用。用"能量占记录长度的比例"作横轴，全部数据排成一条线。</caption>
+    <thead><tr><th>数据</th><th class="num">占记录比</th><th class="num">实测对齐增益</th></tr></thead>
+    <tbody>
+      <tr><td>wave, open clear</td><td class="num win">0.14</td><td class="num win">4.50</td></tr>
+      <tr><td>wave, open sparse</td><td class="num">0.38</td><td class="num">1.10</td></tr>
+      <tr><td>wave, closed dense</td><td class="num">0.48</td><td class="num">1.04</td></tr>
+      <tr><td>平流—扩散 D=0</td><td class="num">0.93</td><td class="num win">1.48</td></tr>
+      <tr><td>平流—扩散 D=0.0005</td><td class="num">0.93</td><td class="num">1.21</td></tr>
+      <tr><td>平流—扩散 D=0.002</td><td class="num">0.93</td><td class="num">1.05</td></tr>
+      <tr><td>平流—扩散 D=0.01</td><td class="num">0.90</td><td class="num bad">0.62</td></tr>
+      <tr><td>cylinder wake</td><td class="num">0.59</td><td class="num bad">0.83</td></tr>
+      <tr><td>Kolmogorov 湍流</td><td class="num">0.58</td><td class="num bad">0.68</td></tr>
+      <tr><td>Kuramoto–Sivashinsky</td><td class="num">0.85</td><td class="num bad">0.65</td></tr>
+      <tr><td>反应扩散</td><td class="num">0.86</td><td class="num bad">0.47</td></tr>
+      <tr><td>active matter</td><td class="num">0.83</td><td class="num bad">0.47</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout"><div class="hd">五个录制流场全部统计定常，对齐有害</div>
+    <p>能量填满记录，对齐不但无益而且有害（0.47–0.83）。害处的来源与第 6 节完全一致：
+    从定常信号估出来的延迟场是粗糙的，而粗糙误差 ≥1/B 会破坏秩。
+    <strong>判据事先就说了不该做</strong>（预测增益 0.81–0.99）。</p></div>
+  <p><strong>但机制本身不是波动专属</strong>：合成的平流—扩散族在<em>非波动</em>系统里复现了波动相图的形状——
+  增益随扩散把输运相干性抹掉而从 1.48 单调塌到 0.62。</p>
+  <p><strong>因此正确的适用范围是"瞬态且相干的输运"，而不是"波动"。</strong>
+  脉冲源产生的波场天然满足两者；流体基准数据两者都不满足。这条结论<strong>收窄</strong>了主张，
+  但也堵死了"这不就是流体里的 shifted POD 吗"这一质疑——本方法不适用于定常流场，且判据会提前说明。</p>
 </section>
 
 <section id="c12">
