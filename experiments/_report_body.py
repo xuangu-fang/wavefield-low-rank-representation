@@ -21,6 +21,7 @@ BODY = """
     <li><a href="#c03"><span class="n">00c</span><span>把界当损失</span></a></li>
     <li><a href="#c04"><span class="n">00d</span><span>与采样定理的关系</span></a></li>
     <li><a href="#c05"><span class="n">00e</span><span>留出验证</span></a></li>
+    <li><a href="#c06"><span class="n">00f</span><span>摊销与迁移</span></a></li>
     <li><a href="#c1"><span class="n">01</span><span>三条主张</span></a></li>
     <li><a href="#c2"><span class="n">02</span><span>秩定律成立</span></a></li>
     <li><a href="#c3"><span class="n">03</span><span>带宽，不是频率</span></a></li>
@@ -227,6 +228,34 @@ BODY = """
     自监督学出的坐标把界降到 0.554，而用真实介质跑 eikonal 得到 0.552——两者实质相同。</p></div>
   <p><strong>如实记录</strong>：留出集上"学出来的坐标释放了可辨识性但线性插值没有全部兑现"
   这一差距依然存在（误差 0.721 vs 物理的 0.661），与前一节观察到的一致。</p>
+</section>
+
+<section id="c06">
+  <h2><span class="n">00f / 摊销</span>坐标是可以摊销的：一次前向传播，迁移到没见过的介质</h2>
+  <p class="lede">前面学出来的坐标都是<strong>逐场拟合</strong>的——那是"某一个场的表征"，
+  不是"表征规则"。真正的检验是：能不能训练一个网络，把<strong>介质</strong>映射到它的对齐坐标，
+  然后在<strong>没见过的介质</strong>上一次前向传播就得到坐标？</p>
+  <div class="tablewrap"><table>
+    <caption>训练 180 个介质、测试 32 个未见介质，唯一的损失就是可辨识性界本身——无标签、无 eikonal 目标。</caption>
+    <thead><tr><th>坐标来源</th><th class="num">未见介质上的界（m=6）</th><th>测试时代价</th></tr></thead>
+    <tbody>
+      <tr><td>无载波</td><td class="num bad">0.995 ± 0.002</td><td>—</td></tr>
+      <tr><td>eikonal（物理）</td><td class="num win">0.581 ± 0.126</td><td style="text-align:left">每个介质跑一次求解器</td></tr>
+      <tr><td><strong>摊销学习（无任何物理）</strong></td><td class="num win">0.591 ± 0.146</td><td style="text-align:left"><strong>一次前向传播</strong></td></tr>
+      <tr><td>摊销学习（物理热启动）</td><td class="num">0.594 ± 0.147</td><td style="text-align:left">一次前向传播</td></tr>
+      <tr><td><em>逐场拟合（上限）</em></td><td class="num">0.488</td><td style="text-align:left">每个场训练一次</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout good"><div class="hd">三条读数</div>
+    <p><strong>1.</strong> 摊销的学习坐标在未见介质上<strong>追平物理</strong>（0.591 vs 0.581），
+    测试时只要一次前向传播，不需要知道 <code>c(x)</code> 也不需要跑 eikonal——
+    <strong>这才是"表征"而不是"某个场的拟合"</strong>。<br>
+    <strong>2.</strong> <strong>物理热启动没有帮助</strong>（0.594 vs 0.591）。
+    在摊销设定下，物理连初始化的作用都不必要了。<br>
+    <strong>3.</strong> <strong>摊销的代价约 20%</strong>：逐场拟合能到 0.488，摊销到 0.591。
+    这是"一次前向 vs 每场训练"要付的价钱，也给出了改进空间的上界。</p></div>
+  <p>这条结果把主张从"可以为某个场找到好坐标"升级为"<strong>可以学到一条从介质到坐标的规则</strong>"，
+  并且这条规则的训练<strong>完全不需要标签</strong>——损失就是我们一直在报告的那个量。</p>
 </section>
 
 <section id="c1">
