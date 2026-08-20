@@ -322,6 +322,51 @@ BODY = """
     <figcaption><b>图 11.</b> 等预算重构误差。黄色（shifted POD）在每个波场上都没能赢过红色（plain POD）。</figcaption>
   </figure>
 
+  <h3>8.3&nbsp;&nbsp;学出来的对齐坐标（方法核心）</h3>
+  <p>前面所有载波都来自 eikonal——需要已知 <code>c(x)</code>，且只对非色散首达精确。
+  把它换成<strong>自监督学出来</strong>的相位场，目标只有一条：</p>
+  <div class="formula">min<sub>θ</sub>  ‖ U ⊙ exp(+i φ<sub>θ</sub>) ‖<sub>*</sub>  +  λ · ‖ |∇τ<sub>θ</sub>| − 1/c ‖²
+        └─ 对齐后有多低秩（无标签）        └─ eikonal 残差（物理先验）</div>
+  <p><strong>目标良定</strong>：逐点乘一个模长为 1 的因子不改变 Frobenius 范数，
+  所以在 ‖·‖<sub>F</sub> 固定下压低核范数等价于压低秩。<code>λ→∞</code> 退化为 eikonal 载波，
+  <code>λ=0</code> 是纯自监督。而且相位不必对 <code>f</code> 线性——<strong>顺带把色散纳入表达能力</strong>，
+  这是走时载波原理上做不到的。</p>
+  <div class="tablewrap"><table>
+    <caption>2% 传感器重建 NRMSE（2 seed 均值）。"物理但错了"用的是第 6 节证明会致命的粗糙误差，幅度 1×(1/B)。</caption>
+    <thead><tr><th>区间</th><th class="num">无载波</th><th class="num">物理（正确）</th><th class="num">物理但错了</th><th class="num">错物理 + 学习</th><th class="num">纯学习（无物理）</th></tr></thead>
+    <tbody>
+      <tr><td>open, clear</td><td class="num bad">1.09</td><td class="num win">0.084</td><td class="num bad">1.09</td><td class="num win">0.095</td><td class="num win">0.101</td></tr>
+      <tr><td>open, sparse</td><td class="num bad">1.10</td><td class="num win">0.746</td><td class="num bad">1.12</td><td class="num">0.782</td><td class="num">0.780</td></tr>
+      <tr><td>partial, clear</td><td class="num bad">1.09</td><td class="num win">0.829</td><td class="num bad">1.12</td><td class="num">0.832</td><td class="num">0.833</td></tr>
+      <tr><td>closed, dense</td><td class="num bad">1.14</td><td class="num">1.063</td><td class="num bad">1.17</td><td class="num">1.111</td><td class="num">1.117</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout good"><div class="hd">物理是先验，不是依赖</div>
+    <p>一个被粗糙误差毁掉的载波（1.09，<em>比无载波还差</em>）经过学习回到 <strong>0.095</strong>，
+    即物理级别。而<strong>完全不给物理、不给介质、不给源位置</strong>，从零学出来的坐标
+    同样达到 0.101——与物理载波实质等同。</p></div>
+  <div class="tablewrap"><table>
+    <caption>The Well Helmholtz staircase，8 个源，R=4 截断误差。此数据集的 trapped mode 有非线性色散，正是第 10 节记录的失败原因。</caption>
+    <thead><tr><th>方法</th><th class="num">R=4 误差</th><th class="num">相对 eikonal</th></tr></thead>
+    <tbody>
+      <tr><td>eikonal（物理）</td><td class="num">0.0288 ± 0.0078</td><td class="num">1.00×</td></tr>
+      <tr><td>learned，核范数目标，τ-only</td><td class="num bad">0.0279 ± 0.0052</td><td class="num bad">1.02×</td></tr>
+      <tr><td>learned，核范数目标，色散</td><td class="num bad">0.0271 ± 0.0013</td><td class="num bad">1.06×</td></tr>
+      <tr><td>learned，尾能量目标，τ-only</td><td class="num">0.0223 ± 0.0057</td><td class="num">1.29×</td></tr>
+      <tr><td><strong>learned，尾能量目标，色散</strong></td><td class="num win">0.0164 ± 0.0034</td><td class="num win">1.74×</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout"><div class="hd">方法论结论：代理必须与指标对齐</div>
+    <p>核范数只是低秩的凸代理，直接优化它<strong>会把真正上报的指标推向错误方向</strong>
+    （1.02–1.06×，几乎无增益）。改成直接优化"预算 R 之外的尾部能量"——同样可微——
+    才拿到 1.29–1.74×。</p></div>
+  <p><strong>如实记录</strong>：纯学习在 FDTD 上是"追平"物理而非超过（0.101 vs 0.084）；
+  只有当物理模型本身有系统性缺陷（色散）时学习才明确胜出。两者是互补而非替代。</p>
+  <figure><img src="{{FIG12}}" alt="左：四个区间下五种载波的传感器重建误差；右：staircase 上四种方法的 rank-4 误差">
+    <figcaption><b>图 12.</b> 左：学习把"错的物理"救回物理级别，且无物理也能追平。
+    右：在物理模型本身有缺陷（色散）的公开数据上，学出来的相位超过 eikonal 1.74×。</figcaption>
+  </figure>
+
   <div class="callout"><div class="hd">实现教训（保留以免后来者重蹈）</div>
     <p>最初用 Adam 拟合该模型，在较大预算上<strong>发散</strong>（误差 7、30、91）。载波之间远非正交，
     一阶方法条件数极差。换成交替最小二乘后单调收敛。这不是方法的性质，是优化器的性质。</p></div>

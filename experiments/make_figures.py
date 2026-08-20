@@ -470,6 +470,66 @@ def figure_shifted_pod() -> None:
     plt.close(fig)
 
 
+def figure_learned_representation() -> None:
+    learned = load("exp17_learned_representation.json")
+    ablation = load("exp18_objective_and_dispersion.json")
+    if not learned and not ablation:
+        return
+    fig, axes = plt.subplots(
+        1, 2, figsize=(10.6, 3.7), gridspec_kw={"width_ratios": [1.6, 1]}
+    )
+
+    if learned:
+        rows = learned["rows"]
+        order = ["open_clear", "open_sparse", "partial_clear", "closed_dense"]
+        regimes = [r for r in order if any(row["regime"] == r for row in rows)]
+        bars = [
+            ("raw_sensor_nrmse", "no carrier", "#9AA5B1"),
+            ("corrupted_sensor_nrmse", "physics, but wrong", PALETTE["raw"]),
+            ("learned_repair_sensor_nrmse", "wrong physics + learning", PALETTE["data_pick"]),
+            ("learned_scratch_sensor_nrmse", "learned, no physics", PALETTE["straight"]),
+            ("eikonal_sensor_nrmse", "physics, correct", PALETTE["eikonal"]),
+        ]
+        positions = np.arange(len(regimes))
+        width = 0.16
+        for index, (key, label, color) in enumerate(bars):
+            values = [
+                np.mean([r[key] for r in rows if r["regime"] == regime]) for regime in regimes
+            ]
+            axes[0].bar(
+                positions + (index - 2) * width, values, width * 0.9,
+                color=color, label=label, linewidth=0,
+            )
+        axes[0].axhline(1.0, color="#666666", lw=0.9, ls=":")
+        axes[0].set_xticks(positions, [r.replace("_", ",\n") for r in regimes], fontsize=8.5)
+        axes[0].set_ylabel("complex NRMSE, 2% sensors")
+        axes[0].set_title("learning recovers what wrong physics loses", fontsize=9)
+        axes[0].legend(fontsize=7.5, ncol=2)
+
+    if ablation:
+        rows = ablation["rows"]
+        entries = [
+            ("eikonal_r4", "physics\n(eikonal)", PALETTE["eikonal"]),
+            ("learned_nuclear_disp_r4", "learned\nnuclear obj.", PALETTE["raw"]),
+            ("learned_tail_tau_r4", "learned\ntail obj.", PALETTE["straight"]),
+            ("learned_tail_disp_r4", "learned\ntail + dispersive", PALETTE["data_pick"]),
+        ]
+        means = [np.mean([r[key] for r in rows]) for key, _, _ in entries]
+        errors = [np.std([r[key] for r in rows]) for key, _, _ in entries]
+        axes[1].bar(
+            np.arange(len(entries)), means, 0.6, yerr=errors, capsize=3,
+            color=[color for _, _, color in entries], linewidth=0,
+        )
+        axes[1].set_xticks(
+            np.arange(len(entries)), [label for _, label, _ in entries], fontsize=8
+        )
+        axes[1].set_ylabel("rank-4 error, Helmholtz staircase")
+        axes[1].set_title("where the physics model is wrong\n(dispersive trapped modes)", fontsize=9)
+    fig.tight_layout()
+    fig.savefig(FIGURES / "fig12_learned_representation.png")
+    plt.close(fig)
+
+
 def figure_fields() -> None:
     from wave_lr.fdtd import MediumSpec
     from wave_lr.fields import fdtd_case, load_well_acoustic
@@ -528,6 +588,7 @@ def main() -> None:
     figure_estimated_carriers()
     figure_learned_baselines()
     figure_shifted_pod()
+    figure_learned_representation()
     figure_fields()
     print(f"figures written to {FIGURES}")
 
