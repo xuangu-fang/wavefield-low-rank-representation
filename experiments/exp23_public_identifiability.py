@@ -19,8 +19,13 @@ from pathlib import Path
 import numpy as np
 
 from wave_lr.harmonic import load_staircase
-from wave_lr.metrics import complex_nrmse
-from wave_lr.spatial import identifiability_bound, infer_spacing, to_grid
+from wave_lr.spatial import (
+    block_weights,
+    identifiability_bound,
+    infer_spacing,
+    largest_full_rectangle,
+    to_grid,
+)
 from wave_lr.spectra import carrier
 from wave_lr.tasks import interpolate_from_sensors
 from wave_lr.theory import fit_slope
@@ -36,22 +41,37 @@ def uniform_mask(coords, spacing, stride):
     return ((rows - rows.min()) % stride == 0) & ((cols - cols.min()) % stride == 0)
 
 
+def usable(coords, mask, spacing, minimum=3):
+    """Reject sub-arrays too degenerate to triangulate (a line of sensors)."""
+
+    if mask.sum() < 12:
+        return False
+    rows = np.rint(coords[mask, 0] / spacing).astype(int)
+    cols = np.rint(coords[mask, 1] / spacing).astype(int)
+    return len(np.unique(rows)) >= minimum and len(np.unique(cols)) >= minimum
+
+
 def measure(label, name, coords, values, frequencies, delays_by_coordinate) -> list[dict]:
     spacing = infer_spacing(coords)
+    # Crop away masked cells before transforming; see largest_full_rectangle.
+    block = largest_full_rectangle(coords, spacing)
+    weights = np.zeros(len(coords))
+    weights[block] = block_weights(coords[block])
     rows = []
     for coordinate, delays in delays_by_coordinate.items():
         working = (
             values if delays is None else values * np.conj(carrier(frequencies, delays))
         )
-        grid = to_grid(working[:, 0], coords)
+        grid = to_grid(working[block, 0], coords[block])
         for stride in STRIDES:
-            observed = uniform_mask(coords, spacing, stride)
-            hidden = ~observed
-            if observed.sum() < 12 or hidden.sum() < 12:
+            observed = uniform_mask(coords, spacing, stride) & block
+            hidden = (~observed) & block
+            if not usable(coords, observed, spacing) or hidden.sum() < 12:
                 continue
             predicted = interpolate_from_sensors(
                 coords, values, frequencies, delays, observed
             )
+            weight = np.sqrt(weights[hidden])[:, None]
             rows.append(
                 {
                     "dataset": label,
@@ -60,7 +80,10 @@ def measure(label, name, coords, values, frequencies, delays_by_coordinate) -> l
                     "stride": stride,
                     "n_sensors": int(observed.sum()),
                     "bound": float(identifiability_bound(grid, 1.0 / stride**2)),
-                    "measured": complex_nrmse(predicted[hidden], values[hidden]),
+                    "measured": float(
+                        np.linalg.norm((predicted[hidden] - values[hidden]) * weight)
+                        / np.linalg.norm(values[hidden] * weight)
+                    ),
                 }
             )
     return rows

@@ -27,8 +27,10 @@ import numpy as np
 from wave_lr.fdtd import MediumSpec
 from wave_lr.fields import fdtd_case, load_well_acoustic, load_well_scattering
 from wave_lr.spatial import (
+    block_weights,
     identifiability_bound,
     infer_spacing,
+    largest_full_rectangle,
     required_fraction,
     to_grid,
 )
@@ -69,12 +71,32 @@ def uniform_mask(coords, spacing, stride):
     return ((rows - rows.min()) % stride == 0) & ((cols - cols.min()) % stride == 0)
 
 
+def usable(coords, mask, spacing, minimum=3):
+    """Reject sub-arrays too degenerate to triangulate (a line of sensors)."""
+
+    if mask.sum() < 12:
+        return False
+    rows = np.rint(coords[mask, 0] / spacing).astype(int)
+    cols = np.rint(coords[mask, 1] / spacing).astype(int)
+    return len(np.unique(rows)) >= minimum and len(np.unique(cols)) >= minimum
+
+
 def evaluate(case, band, label, seeds=2):
     spectrum = to_spectrum(case.traces, case.dt, *band)
     middle = spectrum.values.shape[1] // 2
     frequencies = spectrum.frequencies[middle : middle + 1]
     # Inferred, not taken from metadata: strided cases would leave empty rows.
     spacing = infer_spacing(case.coords)
+    # Masked domains are cropped, never zero-filled, before the transform.
+    block = largest_full_rectangle(case.coords, spacing)
+    weights = np.zeros(len(case.coords))
+    weights[block] = block_weights(case.coords[block])
+    rows_in = np.rint(case.coords[block, 0] / spacing).astype(int)
+    cols_in = np.rint(case.coords[block, 1] / spacing).astype(int)
+    if len(np.unique(rows_in)) < 32 or len(np.unique(cols_in)) < 32:
+        # A crop this thin cannot host the sparser arrays; skip rather than
+        # report a number the geometry does not support.
+        return []
     rows = []
     for coordinate, delays in (("raw", None), ("aligned", case.travel_time)):
         values = (
@@ -84,12 +106,12 @@ def evaluate(case, band, label, seeds=2):
                 :, middle : middle + 1
             ]
         )
-        grid = to_grid(values[:, 0], case.coords, spacing)
+        grid = to_grid(values[block, 0], case.coords[block])
         measured = []
         for stride in STRIDES:
-            observed = uniform_mask(case.coords, spacing, stride)
-            hidden = ~observed
-            if observed.sum() < 12 or hidden.sum() < 12:
+            observed = uniform_mask(case.coords, spacing, stride) & block
+            hidden = (~observed) & block
+            if not usable(case.coords, observed, spacing) or hidden.sum() < 12:
                 measured.append(float("nan"))
                 continue
             predicted = interpolate_from_sensors(
@@ -100,10 +122,12 @@ def evaluate(case, band, label, seeds=2):
                 observed,
             )
             truth = spectrum.values[:, middle : middle + 1]
+            # Same taper as the bound, so the two are defined identically.
+            weight = np.sqrt(weights[hidden])[:, None]
             measured.append(
                 float(
-                    np.linalg.norm(predicted[hidden] - truth[hidden])
-                    / np.linalg.norm(truth[hidden])
+                    np.linalg.norm((predicted[hidden] - truth[hidden]) * weight)
+                    / np.linalg.norm(truth[hidden] * weight)
                 )
             )
         row = {

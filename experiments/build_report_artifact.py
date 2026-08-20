@@ -27,7 +27,7 @@ def summary() -> dict:
     return json.loads(path.read_text()) if path.exists() else {}
 
 
-HEAD = """<title>延迟占据秩定律</title>
+HEAD = """<title>可辨识性与波场表征</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Spectral:wght@500;600&display=swap">
@@ -230,6 +230,7 @@ FIGURE_SLOTS = {
     "{{FIG10}}": "fig10_learned_baselines.png",
     "{{FIG11}}": "fig11_shifted_pod.png",
     "{{FIG12}}": "fig12_learned_representation.png",
+    "{{FIG13}}": "fig13_identifiability.png",
 }
 
 from _report_body import BODY

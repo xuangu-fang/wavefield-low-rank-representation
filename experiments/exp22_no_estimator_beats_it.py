@@ -28,7 +28,13 @@ from wave_lr.fdtd import MediumSpec
 from wave_lr.fields import fdtd_case
 from wave_lr.inr import TrainConfig, fit_field_network
 from wave_lr.metrics import complex_nrmse
-from wave_lr.spatial import identifiability_bound, infer_spacing, to_grid
+from wave_lr.spatial import (
+    block_weights,
+    identifiability_bound,
+    infer_spacing,
+    largest_full_rectangle,
+    to_grid,
+)
 from wave_lr.spectra import carrier, to_spectrum
 from wave_lr.tasks import interpolate_from_sensors
 
@@ -77,10 +83,13 @@ def main() -> None:
             frequencies = spectrum.frequencies[middle : middle + 1]
             truth = spectrum.values[:, middle : middle + 1]
             spacing = infer_spacing(case.coords)
+            block = largest_full_rectangle(case.coords, spacing)
+            weights = np.zeros(len(case.coords))
+            weights[block] = block_weights(case.coords[block])
 
             for stride in STRIDES:
-                observed = uniform_mask(case.coords, spacing, stride)
-                hidden = ~observed
+                observed = uniform_mask(case.coords, spacing, stride) & block
+                hidden = (~observed) & block
                 if observed.sum() < 12 or hidden.sum() < 12:
                     continue
                 for coordinate, delays in (("raw", None), ("aligned", case.travel_time)):
@@ -88,7 +97,7 @@ def main() -> None:
                         None if delays is None else np.conj(carrier(frequencies, delays))
                     )
                     working = truth if ramp is None else truth * ramp
-                    grid = to_grid(working[:, 0], case.coords)
+                    grid = to_grid(working[block, 0], case.coords[block])
                     row = {
                         "regime": regime,
                         "seed": seed,
@@ -97,23 +106,31 @@ def main() -> None:
                         "n_sensors": int(observed.sum()),
                         "bound": float(identifiability_bound(grid, 1.0 / stride**2)),
                     }
+                    weight = np.sqrt(weights[hidden])[:, None]
+
+                    def scored(estimate, hidden=hidden, weight=weight, truth=truth):
+                        """Same taper as the bound, so both are comparable."""
+
+                        return float(
+                            np.linalg.norm((estimate[hidden] - truth[hidden]) * weight)
+                            / np.linalg.norm(truth[hidden] * weight)
+                        )
+
                     predicted = interpolate_from_sensors(
                         case.coords, truth, frequencies, delays, observed
                     )
-                    row["linear_test"] = complex_nrmse(predicted[hidden], truth[hidden])
+                    row["linear_test"] = scored(predicted)
                     filled = nearest_fill(case.coords, working, observed)
                     if ramp is not None:
                         filled = filled * np.conj(ramp)  # back to physical units
-                    row["nearest_test"] = complex_nrmse(filled[hidden], truth[hidden])
+                    row["nearest_test"] = scored(filled)
                     for label, encoding, options in NETWORKS:
                         config = TrainConfig(seed=seed, **options)
                         estimate = fit_field_network(
                             case.coords, truth, observed, encoding,
                             delays=delays, frequencies=frequencies, config=config,
                         )
-                        row[f"{label}_test"] = complex_nrmse(
-                            estimate[hidden], truth[hidden]
-                        )
+                        row[f"{label}_test"] = scored(estimate)
                         row[f"{label}_train"] = complex_nrmse(
                             estimate[observed], truth[observed]
                         )

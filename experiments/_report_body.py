@@ -3,19 +3,21 @@
 BODY = """
 <div class="page">
 <header class="masthead">
-  <div class="kicker"><span>项目报告</span><span>2026-08-19</span><span>wavefield-low-rank-representation</span></div>
-  <h1>延迟占据决定波场的可压缩性</h1>
+  <div class="kicker"><span>项目报告</span><span>2026-08-20</span><span>wavefield-low-rank-representation</span></div>
+  <h1>可辨识性，而不是容量</h1>
   <p class="standfirst">
-    复波场在 <code>(x, f)</code> 展开下的数值秩等于<strong>带宽 × 到达时间占据测度</strong>。
-    相位解调不消除能量，它只是把占据测度从绝对走时展宽换成相对延迟展宽——
-    所以收益等于两者之比，而这个比值在训练任何模型之前就能算出来。
-    同一条定律既预测收益出现的区间，也预测收益消失的区间。
+    稀疏波场重构的瓶颈是<strong>可辨识性</strong>，不是模型容量。传感器之间的场在信息上
+    无法被采样确定；物理先验的作用不是"更好的归纳偏置"，而是<strong>把缺失的自由度补进来</strong>。
+    缺多少、补得够不够、什么时候根本补不上——都可以用<strong>一次 FFT</strong> 在训练前算出来，
+    而这些信息有时可以自监督地从数据本身学回来。
   </p>
 </header>
 
 <div class="layout">
 <nav class="index" aria-label="目录">
   <ol>
+    <li><a href="#c0"><span class="n">00</span><span>可辨识性界</span></a></li>
+    <li><a href="#c02"><span class="n">00b</span><span>不是容量</span></a></li>
     <li><a href="#c1"><span class="n">01</span><span>三条主张</span></a></li>
     <li><a href="#c2"><span class="n">02</span><span>秩定律成立</span></a></li>
     <li><a href="#c3"><span class="n">03</span><span>带宽，不是频率</span></a></li>
@@ -36,6 +38,85 @@ BODY = """
 </nav>
 
 <main>
+
+<section id="c0">
+  <h2><span class="n">00 / 核心</span>一次 FFT 给出的可辨识性界</h2>
+  <p class="lede">在间距为 <code>m</code> 的规则传感器阵列上，波数高于 <code>1/(2m)</code> 的能量
+  与低于它的能量无法区分。因此<strong>任何</strong>方法的相对误差都不低于：</p>
+  <div class="formula">误差  ≥  √( 能量(|k| &gt; 1/(2m)) ⁄ 总能量 )   ≡  可辨识性界</div>
+  <p>这一句有三个特点：它是<strong>信息层面</strong>的陈述（与用什么模型无关）、
+  <strong>一次 FFT 就能算</strong>（不需训练，也不需真值）、
+  而且<strong>载波的全部作用就是把能量搬到门槛以下</strong>。</p>
+  <div class="callout"><div class="hd">测量纪律：三条都是踩坑之后加的</div>
+    <p><strong>1. 规则阵列，不是随机采样。</strong>随机采样下混叠不是一堵墙——稀疏的高波数内容可以被恢复
+    （压缩感知正利用这一点），此时该量根本不是界。规则阵列也更接近真实传感硬件。<br>
+    <strong>2. 有遮挡的区域要裁剪，不能补零。</strong>补零插入一条本不存在的阶跃边，
+    凭空制造高波数能量把界抬高。<br>
+    <strong>3. 加锥形窗，且预测与实测用同一个窗。</strong>非周期的光滑场在矩形窗下泄漏出 1/k 拖尾；
+    对严重过采样的场，那条拖尾<em>就是</em>全部"界外能量"，足以让界超过它本该下界的误差。
+    Tukey(0.25) 消除它——FDTD 场对窗几乎不敏感（比值 1.2–1.4 不随 α 变），staircase 则完全依赖它。</p></div>
+  <div class="tablewrap"><table>
+    <caption>界随阵列间距的行为，就是整个故事。数值为界本身，越小越可辨识。</caption>
+    <thead><tr><th>场</th><th>坐标系</th><th class="num">m=2</th><th class="num">m=3</th><th class="num">m=4</th><th class="num">m=6</th><th class="num">m=8</th><th class="num">m=11</th><th class="num">m=16</th></tr></thead>
+    <tbody>
+      <tr><td>open, clear</td><td>raw</td><td class="num">0.022</td><td class="num">0.091</td><td class="num">0.445</td><td class="num bad">0.997</td><td class="num bad">0.999</td><td class="num bad">1.000</td><td class="num bad">1.000</td></tr>
+      <tr><td>open, clear</td><td><strong>aligned</strong></td><td class="num win">0.014</td><td class="num win">0.032</td><td class="num win">0.040</td><td class="num win">0.062</td><td class="num win">0.102</td><td class="num win">0.170</td><td class="num win">0.254</td></tr>
+      <tr><td>open, sparse</td><td>raw</td><td class="num">0.298</td><td class="num">0.486</td><td class="num">0.642</td><td class="num bad">0.991</td><td class="num bad">0.997</td><td class="num bad">0.999</td><td class="num bad">0.999</td></tr>
+      <tr><td>open, sparse</td><td>aligned</td><td class="num">0.352</td><td class="num">0.490</td><td class="num">0.536</td><td class="num">0.594</td><td class="num">0.639</td><td class="num">0.674</td><td class="num">0.715</td></tr>
+      <tr><td>closed, dense</td><td>raw</td><td class="num">0.455</td><td class="num">0.689</td><td class="num">0.828</td><td class="num bad">0.987</td><td class="num bad">0.995</td><td class="num bad">0.998</td><td class="num bad">0.999</td></tr>
+      <tr><td>closed, dense</td><td>aligned</td><td class="num">0.566</td><td class="num">0.768</td><td class="num">0.818</td><td class="num">0.878</td><td class="num">0.901</td><td class="num">0.926</td><td class="num">0.953</td></tr>
+      <tr><td>The Well maze</td><td>raw</td><td class="num">0.637</td><td class="num bad">0.974</td><td class="num bad">0.994</td><td class="num bad">0.999</td><td class="num bad">1.000</td><td class="num bad">1.000</td><td class="num bad">1.000</td></tr>
+      <tr><td>The Well maze</td><td>aligned</td><td class="num">0.756</td><td class="num">0.890</td><td class="num">0.946</td><td class="num bad">0.987</td><td class="num bad">0.994</td><td class="num bad">0.998</td><td class="num bad">0.999</td></tr>
+    </tbody>
+  </table></div>
+  <p>原始坐标下，<strong>间距一到 6 像素可辨识性就已经塌到 1.0</strong>（等于零预测）；
+  对齐坐标在 open/clear 下到间距 16 仍然是 0.254。其余区间两者并无差别——判据同时说明了这一点。</p>
+  <div class="tablewrap"><table>
+    <caption>换算成传感器数量：达到 NRMSE ≤ 0.5 所需的采样比例。</caption>
+    <thead><tr><th>区间</th><th class="num">raw</th><th class="num">aligned</th><th class="num">省下</th></tr></thead>
+    <tbody>
+      <tr><td>open, clear</td><td class="num">9.4%</td><td class="num win">0.39%</td><td class="num win">24×</td></tr>
+      <tr><td>open, sparse</td><td class="num">18.8%</td><td class="num">22.2%</td><td class="num bad">0.8×</td></tr>
+      <tr><td>partial, clear</td><td class="num">9.4%</td><td class="num">15.5%</td><td class="num bad">0.6×</td></tr>
+      <tr><td>closed, dense</td><td class="num" colspan="2">两者都达不到</td><td class="num">—</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout good"><div class="hd">界在多少数据上成立</div>
+    <p>自建求解器 + The Well maze + acoustic inclusions：<strong>234 组</strong>测量，打破比例 <strong>1.7%</strong>，R²=0.80。<br>
+    公开频域数据（Helmholtz staircase + WaveBench）：<strong>224 组</strong>，打破比例 <strong>8.0%</strong>
+    （WaveBench ω=40 为 <strong>0%</strong>），R²=0.88。</p></div>
+  <figure><img src="{{FIG13}}" alt="左：实测误差对界的双对数散点；右：误差随阵列间距的曲线">
+    <figcaption><b>图 0.</b> 左：界成立且接近紧。右：载波把整条曲线搬下去——不增加任何一次测量。</figcaption>
+  </figure>
+</section>
+
+<section id="c02">
+  <h2><span class="n">00b / 不是容量</span>跨 128 倍参数量，测试误差只动 3%</h2>
+  <p class="lede">如果传感器之间填不出来是<strong>建模</strong>失败，更大或训练更久的模型应该能修好它。
+  如果是<strong>可辨识性</strong>失败，什么都修不好——而同一个问题在载波坐标里会突然变简单，
+  且没有增加任何一次测量。</p>
+  <div class="tablewrap"><table>
+    <caption>六个估计器，同样的规则阵列、同样的场，48 组设置。</caption>
+    <thead><tr><th>估计器</th><th class="num">参数量</th><th class="num">训练 NRMSE</th><th class="num">测试 NRMSE</th></tr></thead>
+    <tbody>
+      <tr><td>Fourier-feature MLP（小）</td><td class="num">8 192</td><td class="num">1.5×10⁻⁷</td><td class="num bad">0.969</td></tr>
+      <tr><td>Fourier-feature MLP（中）</td><td class="num">196 608</td><td class="num">1.2×10⁻⁷</td><td class="num bad">0.958</td></tr>
+      <tr><td>Fourier-feature MLP（大）</td><td class="num">1 048 576</td><td class="num">1.2×10⁻⁷</td><td class="num bad">0.940</td></tr>
+      <tr><td>SIREN</td><td class="num">196 608</td><td class="num">7.5×10⁻⁴</td><td class="num">0.899</td></tr>
+      <tr><td>最近邻</td><td class="num">—</td><td class="num">—</td><td class="num">0.934</td></tr>
+      <tr><td><strong>线性插值（零参数）</strong></td><td class="num">—</td><td class="num">—</td><td class="num win">0.806</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout good"><div class="hd">三条读数</div>
+    <p><strong>1.</strong> 训练误差恒为 10⁻⁷，测试误差在 <strong>128 倍</strong>容量跨度上只从 0.969 变到 0.940
+    （<strong>3%</strong>）。网络把传感器拟合到机器精度，仍然填不出中间——不是欠拟合，也不是欠训练。<br>
+    <strong>2.</strong> <strong>零参数的线性插值打败了每一个网络</strong>，包括一百万参数那个；
+    48 组里它有 28 组是最优估计器。容量替代不了信息。<br>
+    <strong>3.</strong> <strong>换坐标系才有用</strong>：界从 0.766 降到 0.527，所有估计器能达到的最好成绩
+    跟着从 0.887 降到 0.604——<strong>没有增加任何一次测量</strong>。</p></div>
+  <p>界在 48 组里被打破 4 次（8.3%），线性插值平均是界的 1.48 倍——即界不仅成立，而且接近可达。
+  这就是"可辨识性，而不是容量"这句话的全部经验内容。</p>
+</section>
 
 <section id="c1">
   <h2><span class="n">01 / 主张</span>三条可证伪的主张</h2>
