@@ -209,17 +209,26 @@ BODY = """
 <section id="c1">
   <h2><span class="n">01 / 主张</span>三条可证伪的主张</h2>
   <div class="claims">
-    <div class="claim"><div class="tag">C1 秩定律</div><h4>秩 = 带宽 × 占据测度</h4>
-      <p>对 <code>u(x,f)=∫g(x,τ)e<sup>-2πifτ</sup>dτ</code>，数值秩 ≈ <code>B·Λ<sub>B</sub></code>，
-      其中 <code>Λ<sub>B</sub></code> 是在分辨率 <code>1/B</code> 下承载能量的延迟集合测度。</p></div>
-    <div class="claim"><div class="tag">C2 增益律</div><h4>收益 = 占据测度之比</h4>
-      <p>解调等价于逐点时移，把绝对走时占据 <code>Λ<sub>abs</sub></code> 换成相对延迟占据
-      <code>Λ<sub>rel</sub></code>；收益 <code>G=(BΛ<sub>abs</sub>+1)/(BΛ<sub>rel</sub>+1)</code>。</p></div>
-    <div class="claim"><div class="tag">C3 传导</div><h4>秩收益 → 任务收益</h4>
-      <p>秩下降必然转化为稀疏采样任务的精度提升，且幅度由 C2 预测——包括预测"没有收益"。</p></div>
+    <div class="claim"><div class="tag">C1 可辨识性界</div><h4>误差 ≥ 界</h4>
+      <p>在间距 <code>m</code> 的规则阵列上，任何方法的相对误差不低于
+      <code>√(能量(|k|&gt;1/(2m))/总能量)</code>。一次 FFT 可得，与所用模型无关。</p></div>
+    <div class="claim"><div class="tag">C2 不是容量</div><h4>加容量无用，换坐标有用</h4>
+      <p>128× 参数量 → 3% 误差变化；界降 1.45× → 所有估计器跟着降。
+      前者是模型问题的排除，后者是信息问题的确认。</p></div>
+    <div class="claim"><div class="tag">C3 信息可学</div><h4>把界当损失</h4>
+      <p>不知道介质、源位置与求解器，仅靠自监督最小化界本身，
+      即可学出把界降到与物理同等水平的坐标。</p></div>
   </div>
-  <p>三条主张都写了停止规则：合成场上偏差超过 2 倍、真实数据上相关性 <code>R²&lt;0.5</code>、
-  或估计载波无法在任一真实任务上复现收益，则整条理论线终止。下面是它们实际的表现。</p>
+  <p><strong>停止规则</strong>：C1 在任一数据集上被系统性打破（&gt;20%）则整条线终止；
+  C2 若容量扫描出现单调显著改善则终止；C3 若纯学习的界始终高于无载波则终止。
+  截至目前三条都未触发。</p>
+
+  <h3>1.1&nbsp;&nbsp;频率轴上的对偶：秩定律</h3>
+  <p>接下来几节是同一原理在<strong>另一根轴</strong>上的形式。空间轴上是"域面积 × 占据波数支撑"，
+  频率轴上则是<strong>带宽 × 占据延迟支撑</strong>：</p>
+  <div class="formula">rank(U)  ≈  B · Λ        Λ = 承载能量的到达时间集合测度（分辨率 1/B）</div>
+  <p>解调把延迟占据从"绝对走时展宽"换成"相对延迟展宽"，正如它在空间轴上把波数从
+  <code>ω/c</code> 换成包络的变化尺度。<strong>两条轴上的收益由同一物理量（延迟展宽）控制。</strong></p>
 </section>
 
 <section id="c2">
