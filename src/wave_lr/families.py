@@ -203,3 +203,43 @@ def ks_cases(limit=12, version="v1"):
             )
         )
     return out
+
+
+OPENFWI_BAND = (2.0, 40.0)
+
+
+def openfwi_stack(path_index=0, n_sample=64, shots=(0, 1, 2, 3, 4), taper=0.25, band=OPENFWI_BAND):
+    """Shot gathers on one shared frequency axis and one shared sensor line.
+
+    The per-case loader picks each gather's own band, which is right for auditing
+    but leaves ragged shapes. An amortised model needs every instance to be the
+    same object, so the band is fixed here instead.
+    """
+
+    paths = sorted(glob.glob(f"{OPENFWI_ROOT}/seis2_*.npy"))
+    block = np.load(paths[path_index], mmap_mode="r")
+    n_avail, _, n_t, n_r = block.shape
+    dt, dr = 1e-3, 10.0
+    freqs = np.fft.rfftfreq(n_t, dt)
+    keep = np.where((freqs >= band[0]) & (freqs <= band[1]))[0]
+    coords = np.arange(n_r) * dr
+    shot_x = np.array([0, n_r // 4, n_r // 2, 3 * n_r // 4, n_r - 1]) * dr
+    window = tukey(n_t, taper)[:, None]
+
+    spectra, sources, names = [], [], []
+    for index in range(min(n_sample, n_avail)):
+        for shot in shots:
+            gather = np.asarray(block[index, shot], dtype=np.float64)
+            spectra.append(np.fft.rfft(gather * window, axis=0)[keep])
+            sources.append(float(shot_x[shot]))
+            names.append(f"{paths[path_index].split('/')[-1][:-4]}#{index}s{shot}")
+    spectra = np.stack(spectra)
+    energy = (np.abs(spectra) ** 2).sum((0, 2))
+    return {
+        "spectra": spectra,
+        "freqs": freqs[keep],
+        "coords": coords,
+        "weights": energy / energy.sum(),
+        "sources": np.array(sources),
+        "names": names,
+    }
