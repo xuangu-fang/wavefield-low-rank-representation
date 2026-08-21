@@ -23,6 +23,7 @@ BODY = """
     <li><a href="#c05"><span class="n">00e</span><span>留出验证</span></a></li>
     <li><a href="#c06"><span class="n">00f</span><span>摊销与迁移</span></a></li>
     <li><a href="#c07"><span class="n">00g</span><span>跨几何（限制）</span></a></li>
+    <li><a href="#c08"><span class="n">00h</span><span>覆盖审计</span></a></li>
     <li><a href="#c1"><span class="n">01</span><span>三条主张</span></a></li>
     <li><a href="#c2"><span class="n">02</span><span>秩定律成立</span></a></li>
     <li><a href="#c3"><span class="n">03</span><span>带宽，不是频率</span></a></li>
@@ -292,6 +293,42 @@ BODY = """
   <div class="callout"><div class="hd">该怎么说</div>
     <p>可用的说法是"<strong>给定几何族，可以学到一条从介质到坐标的规则</strong>"，
     而<strong>不能</strong>说"学到了一条与几何无关的规则"。这条限制应当写进论文，而不是回避。</p></div>
+</section>
+
+<section id="c08">
+  <h2><span class="n">00h / 审计</span>公开波动基准在这条轴上的分布</h2>
+  <p class="lede">判据把"这个数据集属于哪个区间"变成一个可计算的数。既然如此，就应当<strong>统一地</strong>
+  对所有测过的数据集算一遍，并把出处、版本、许可一并记录，让结论可被审计和复现。</p>
+  <div class="callout"><div class="hd">判定规则（对所有数据集一致应用）</div>
+    <p>在参考阵列间距 m=6 上，若原始界已低于 0.15，记为<strong>已可辨识</strong>——该密度下本就不需要载波，
+    两个接近零的数之比不携带信息；否则按对齐界与原始界之比判定：
+    <code>≤0.5</code> 有利、<code>≤0.9</code> 中等、否则不利。</p></div>
+  <div class="tablewrap"><table>
+    <thead><tr><th>公开波动数据集</th><th class="num">界(raw)</th><th class="num">界(aligned)</th><th class="num">比值</th><th>判定</th></tr></thead>
+    <tbody>
+      <tr><td>The Well — acoustic_scattering_inclusions</td><td class="num">0.686</td><td class="num">0.596</td><td class="num">0.87</td><td>中等</td></tr>
+      <tr><td>The Well — acoustic_scattering_maze</td><td class="num bad">0.999</td><td class="num bad">0.985</td><td class="num bad">0.99</td><td>不利</td></tr>
+      <tr><td>WaveBench — isotropic, ω 标称 40</td><td class="num bad">0.992</td><td class="num bad">0.993</td><td class="num bad">1.00</td><td>不利</td></tr>
+      <tr><td>The Well — helmholtz_staircase</td><td class="num">0.020</td><td class="num">0.023</td><td class="num">—</td><td>已可辨识</td></tr>
+      <tr><td>WaveBench — isotropic, ω 标称 10</td><td class="num">0.033</td><td class="num">0.084</td><td class="num">—</td><td>已可辨识</td></tr>
+      <tr><td><em>（参照）本项目 FDTD open/clear</em></td><td class="num">0.997</td><td class="num win">0.062</td><td class="num win">0.06</td><td><strong>有利</strong></td></tr>
+      <tr><td><em>（参照）本项目 FDTD closed/dense</em></td><td class="num">0.990</td><td class="num">0.860</td><td class="num">0.87</td><td>中等</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout"><div class="hd">0 / 5</div>
+    <p><strong>没有一个公开波动数据集落在「有利」区间。</strong>而自建求解器的参照点跨越 0.06–0.87，
+    覆盖整条轴——缺口不在方法能否奏效，而在<strong>公开基准在这条轴上的采样偏斜</strong>。<br><br>
+    <strong>对社区的含义</strong>：若要评估物理对齐类表征方法，现有公开波动基准<strong>无法区分
+    「方法无效」与「数据集不在该方法的适用区间」</strong>。补上开放/吸收介质、且采样低于空间
+    Nyquist 的公开数据，是让这类方法可被公平评估的前提。</p></div>
+  <p><strong>一个数据集可以在不同轴上落在不同区间</strong>，审计因此并列给出三根轴而不是一个数字。
+  Helmholtz staircase 是典型：m=6 的空间采样下它本就可辨识（界 0.020），
+  但在<strong>频率轴的等预算压缩</strong>上载波带来 <strong>10.6×</strong> 增益。</p>
+  <p><strong>存档</strong>（均已入 git）：<code>reports/benchmark_registry.json</code>（机器可读，
+  含每个数据集的出处 URL、修订号、许可、获取方式与三根轴上的度量）与
+  <code>reports/BENCHMARK_COVERAGE.md</code>（表格版，含非波动数据集的另一套度量）。
+  许可与版本均于 2026-08-21 通过 HuggingFace 与 Zenodo API 核实；
+  OpenFWI 与 PDEBench 的许可<strong>未在本项目核实</strong>，登记为「见官方发布」。</p>
 </section>
 
 <section id="c1">
