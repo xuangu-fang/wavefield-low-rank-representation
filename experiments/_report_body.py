@@ -22,6 +22,7 @@ BODY = """
     <li><a href="#c04"><span class="n">00d</span><span>与采样定理的关系</span></a></li>
     <li><a href="#c05"><span class="n">00e</span><span>留出验证</span></a></li>
     <li><a href="#c06"><span class="n">00f</span><span>摊销与迁移</span></a></li>
+    <li><a href="#c07"><span class="n">00g</span><span>跨几何（限制）</span></a></li>
     <li><a href="#c1"><span class="n">01</span><span>三条主张</span></a></li>
     <li><a href="#c2"><span class="n">02</span><span>秩定律成立</span></a></li>
     <li><a href="#c3"><span class="n">03</span><span>带宽，不是频率</span></a></li>
@@ -260,6 +261,37 @@ BODY = """
   </figure>
   <p>这条结果把主张从"可以为某个场找到好坐标"升级为"<strong>可以学到一条从介质到坐标的规则</strong>"，
   并且这条规则的训练<strong>完全不需要标签</strong>——损失就是我们一直在报告的那个量。</p>
+</section>
+
+<section id="c07">
+  <h2><span class="n">00g / 跨几何</span>介质是免费的，几何不是</h2>
+  <p class="lede">前一节的摊销是在<strong>介质内容</strong>上迁移的——源位置固定、边界条件固定。
+  那是"换内容"，不是"换几何"。这里把<strong>源位置</strong>与<strong>边界吸收</strong>变成留出变量：
+  9 个源位置 × 3 种边界 × 10 个介质。网络只拿到实践中真正已知的东西
+  （波速图、阻尼剖面、源位置），<strong>从不给走时</strong>，损失仍然只有界本身。</p>
+  <div class="tablewrap"><table>
+    <caption>关键比较是同一测试集上"学出来 / 物理"的比值。2 seed。</caption>
+    <thead><tr><th>划分</th><th class="num">训练</th><th class="num">测试</th><th class="num">无载波</th><th class="num">物理</th><th class="num">学出来</th><th class="num">学/物理</th></tr></thead>
+    <tbody>
+      <tr><td>同分布（全部几何）</td><td class="num">216</td><td class="num">54</td><td class="num bad">0.994</td><td class="num">0.693</td><td class="num">0.766</td><td class="num">1.11</td></tr>
+      <tr><td><strong>留出源位置</strong>（全部边界）</td><td class="num">180</td><td class="num">90</td><td class="num bad">0.994</td><td class="num">0.722</td><td class="num">0.812</td><td class="num bad">1.12</td></tr>
+      <tr><td><strong>留出边界</strong>（只训练 open）</td><td class="num">90</td><td class="num">180</td><td class="num bad">0.994</td><td class="num">0.791</td><td class="num win">0.792</td><td class="num win">1.00</td></tr>
+      <tr><td>同分布（只 open）</td><td class="num">72</td><td class="num">18</td><td class="num bad">0.993</td><td class="num">0.541</td><td class="num">0.599</td><td class="num">1.11</td></tr>
+      <tr><td><strong>留出源位置（只 open）</strong></td><td class="num">60</td><td class="num">30</td><td class="num bad">0.994</td><td class="num">0.588</td><td class="num bad">0.722</td><td class="num bad">1.23</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout"><div class="hd">三条读数，其中两条是负面的</div>
+    <p><strong>1.</strong> <strong>留出边界几乎免费</strong>（1.00）——但那两个区间物理本身也只能把界从
+    0.994 降到 0.791，<em>可拿的收益本来就少</em>，"持平"的门槛低。<br>
+    <strong>2.</strong> <strong>留出源位置不免费</strong>：同一 open 区间内，同分布 1.11 → 留出源
+    <strong>1.23</strong>。这是真实的泛化损失，与"换介质完全免费"形成对比。<br>
+    <strong>3.</strong> <strong>几何异质性本身就要付 ~11%</strong>：一个同时服务 9 个源位置、
+    3 种边界的模型，即使在<em>同分布</em>上也比物理差 11%，而固定几何的模型是追平甚至超过物理的。</p></div>
+  <p><strong>更多训练不能修复它</strong>：步数从 2500 提到 6000，同分布 0.766 → 0.773、
+  留出源 0.812 → 0.843，不降反升（轻微过拟合到已训练的源位置）。这不是训练预算问题。</p>
+  <div class="callout"><div class="hd">该怎么说</div>
+    <p>可用的说法是"<strong>给定几何族，可以学到一条从介质到坐标的规则</strong>"，
+    而<strong>不能</strong>说"学到了一条与几何无关的规则"。这条限制应当写进论文，而不是回避。</p></div>
 </section>
 
 <section id="c1">
