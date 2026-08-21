@@ -1,0 +1,592 @@
+<title>可辨识性判据</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@500;700&family=Noto+Serif+SC:wght@400;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+
+<style>
+  :root {
+    --paper:        #F6F7F8;
+    --surface:      #FFFFFF;
+    --surface-sunk: #EDEFF2;
+    --ink:          #191C21;
+    --ink-soft:     #4A525C;
+    --ink-faint:    #7C8592;
+    --rule:         #DBE0E6;
+    --rule-strong:  #C2C9D2;
+    --accent:       #1F6FB2;
+    --accent-soft:  #E7F0F8;
+    --alarm:        #B4413C;
+    --alarm-soft:   #F8EAE9;
+    --gold:         #B07A12;
+    --gold-soft:    #FBF2DF;
+    --green:        #3C7F55;
+    --green-soft:   #E9F2EC;
+    --shadow:       0 1px 2px rgba(25,28,33,.05), 0 6px 20px rgba(25,28,33,.05);
+
+    --sans: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    --serif: "Noto Serif SC", "Songti SC", "SimSun", Georgia, serif;
+    --mono: "IBM Plex Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:        #14171B;
+      --surface:      #1B1F25;
+      --surface-sunk: #21262D;
+      --ink:          #E6E9ED;
+      --ink-soft:     #AEB6C0;
+      --ink-faint:    #7E8894;
+      --rule:         #2C323A;
+      --rule-strong:  #3C444E;
+      --accent:       #6FAEE0;
+      --accent-soft:  #1B2C3A;
+      --alarm:        #E08A85;
+      --alarm-soft:   #352322;
+      --gold:         #DCA94A;
+      --gold-soft:    #322A18;
+      --green:        #7FC095;
+      --green-soft:   #1D2C22;
+      --shadow:       0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.25);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:        #14171B;
+    --surface:      #1B1F25;
+    --surface-sunk: #21262D;
+    --ink:          #E6E9ED;
+    --ink-soft:     #AEB6C0;
+    --ink-faint:    #7E8894;
+    --rule:         #2C323A;
+    --rule-strong:  #3C444E;
+    --accent:       #6FAEE0;
+    --accent-soft:  #1B2C3A;
+    --alarm:        #E08A85;
+    --alarm-soft:   #352322;
+    --gold:         #DCA94A;
+    --gold-soft:    #322A18;
+    --green:        #7FC095;
+    --green-soft:   #1D2C22;
+    --shadow:       0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.25);
+  }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: 16px;
+    line-height: 1.85;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 45em;
+    margin: 0 auto;
+    padding: clamp(2.5rem, 6vw, 5rem) clamp(1.1rem, 4vw, 2rem) 6rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2.4rem;
+  }
+
+  /* ---------- masthead ---------- */
+  .masthead { display: flex; flex-direction: column; gap: .9rem; }
+  .eyebrow {
+    font-family: var(--sans); font-weight: 500; font-size: .74rem;
+    letter-spacing: .17em; text-transform: uppercase; color: var(--ink-faint);
+  }
+  h1 {
+    font-family: var(--sans); font-weight: 700;
+    font-size: clamp(1.9rem, 5.4vw, 2.7rem);
+    line-height: 1.28; letter-spacing: -.01em; text-wrap: balance; margin: 0;
+  }
+  .standfirst {
+    font-size: 1.06rem; color: var(--ink-soft); max-width: 34em;
+  }
+  .byline {
+    font-family: var(--mono); font-size: .78rem; color: var(--ink-faint);
+    border-top: 1px solid var(--rule); padding-top: .8rem;
+    display: flex; flex-wrap: wrap; gap: .4rem 1.4rem;
+  }
+
+  /* ---------- headline numbers ---------- */
+  .keyfigs {
+    display: grid; gap: 1px; background: var(--rule);
+    grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+    border: 1px solid var(--rule); border-radius: 4px; overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  .keyfig { background: var(--surface); padding: 1.05rem 1.1rem; display: flex; flex-direction: column; gap: .18rem; }
+  .keyfig b {
+    font-family: var(--mono); font-weight: 600; font-size: 1.5rem;
+    color: var(--accent); font-variant-numeric: tabular-nums; line-height: 1.2;
+  }
+  .keyfig span { font-family: var(--sans); font-size: .78rem; color: var(--ink-soft); line-height: 1.5; }
+
+  /* ---------- sections ---------- */
+  section { display: flex; flex-direction: column; gap: 1.05rem; }
+  h2 {
+    font-family: var(--sans); font-weight: 700; font-size: 1.32rem;
+    line-height: 1.4; margin: 1.6rem 0 0; text-wrap: balance;
+    padding-bottom: .55rem; border-bottom: 2px solid var(--ink);
+    display: flex; align-items: baseline; gap: .7rem;
+  }
+  h2 .num {
+    font-family: var(--mono); font-size: .82rem; color: var(--accent);
+    font-weight: 600; flex: none;
+  }
+  h3 {
+    font-family: var(--sans); font-weight: 500; font-size: 1.03rem;
+    margin: 1.1rem 0 -.3rem; color: var(--ink);
+  }
+  p { margin: 0; }
+  a { color: var(--accent); text-underline-offset: 2px; }
+  strong { font-weight: 600; }
+  code, .m {
+    font-family: var(--mono); font-size: .87em;
+    background: var(--surface-sunk); padding: .1em .34em; border-radius: 3px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  ul, ol { margin: 0; padding-left: 1.35rem; display: flex; flex-direction: column; gap: .5rem; }
+  li::marker { color: var(--ink-faint); }
+
+  /* ---------- the spine: claim / evidence / falsifier ---------- */
+  .spine {
+    display: grid; gap: 1px; background: var(--rule);
+    border: 1px solid var(--rule); border-radius: 4px; overflow: hidden;
+  }
+  .spine > div { background: var(--surface); padding: .95rem 1.15rem; display: flex; gap: .95rem; align-items: baseline; }
+  .spine .tag {
+    font-family: var(--sans); font-weight: 500; font-size: .72rem;
+    letter-spacing: .09em; color: var(--ink-faint); flex: none; width: 5.2em;
+    padding-top: .18rem;
+  }
+  .spine .body { font-size: .95rem; line-height: 1.8; }
+  .spine .claim { background: var(--accent-soft); }
+  .spine .claim .tag { color: var(--accent); }
+  .spine .claim .body { font-weight: 600; }
+
+  /* ---------- callouts ---------- */
+  .note {
+    border-left: 3px solid var(--rule-strong); padding: .1rem 0 .1rem 1.1rem;
+    color: var(--ink-soft); font-size: .95rem;
+  }
+  .note.warn { border-left-color: var(--alarm); background: var(--alarm-soft); padding: .85rem 1.1rem; border-radius: 0 4px 4px 0; color: var(--ink); }
+  .note.good { border-left-color: var(--green); background: var(--green-soft); padding: .85rem 1.1rem; border-radius: 0 4px 4px 0; color: var(--ink); }
+  .note.key  { border-left-color: var(--gold);  background: var(--gold-soft);  padding: .85rem 1.1rem; border-radius: 0 4px 4px 0; color: var(--ink); }
+  .note .lab { font-family: var(--sans); font-weight: 500; font-size: .74rem; letter-spacing: .08em; display: block; margin-bottom: .25rem; }
+  .note.warn .lab { color: var(--alarm); }
+  .note.good .lab { color: var(--green); }
+  .note.key  .lab { color: var(--gold); }
+
+  blockquote {
+    margin: 0; padding: 1.1rem 1.3rem; background: var(--surface);
+    border: 1px solid var(--rule); border-left: 3px solid var(--accent);
+    border-radius: 0 4px 4px 0; font-size: 1.03rem; box-shadow: var(--shadow);
+  }
+
+  /* ---------- formula ---------- */
+  .formula {
+    font-family: var(--mono); font-size: .95rem; text-align: center;
+    background: var(--surface-sunk); padding: 1rem .8rem; border-radius: 4px;
+    overflow-x: auto; white-space: nowrap; color: var(--ink);
+  }
+
+  /* ---------- tables ---------- */
+  .tablewrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 4px; background: var(--surface); box-shadow: var(--shadow); }
+  table { border-collapse: collapse; width: 100%; font-size: .89rem; font-family: var(--sans); }
+  caption {
+    caption-side: bottom; text-align: left; padding: .7rem 1rem;
+    font-size: .8rem; color: var(--ink-faint); border-top: 1px solid var(--rule);
+    font-family: var(--sans); line-height: 1.65;
+  }
+  th, td { padding: .58rem .85rem; text-align: left; border-bottom: 1px solid var(--rule); vertical-align: baseline; }
+  thead th {
+    font-weight: 500; font-size: .76rem; letter-spacing: .05em; color: var(--ink-faint);
+    border-bottom: 1px solid var(--rule-strong); white-space: nowrap;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td.n, th.n { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  tr.hi td { background: var(--accent-soft); }
+  tr.dim td { color: var(--ink-faint); }
+  td .win { color: var(--green); font-weight: 600; }
+  td .lose { color: var(--alarm); font-weight: 600; }
+
+  /* ---------- diagram ---------- */
+  figure { margin: 0; display: flex; flex-direction: column; gap: .6rem; }
+  figure svg { width: 100%; height: auto; display: block; }
+  figcaption { font-family: var(--sans); font-size: .8rem; color: var(--ink-faint); line-height: 1.65; }
+  .diagram { background: var(--surface); border: 1px solid var(--rule); border-radius: 4px; padding: 1.1rem; box-shadow: var(--shadow); }
+
+  hr { border: none; border-top: 1px solid var(--rule); margin: .6rem 0; }
+
+  .footer {
+    font-family: var(--sans); font-size: .8rem; color: var(--ink-faint);
+    border-top: 1px solid var(--rule); padding-top: 1.2rem; line-height: 1.8;
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="eyebrow">技术报告 · 内部</div>
+    <h1>可辨识性判据</h1>
+    <p class="standfirst">稀疏观测的物理场上，误差里有多少是不可学习的缺失信息——以及为什么一次 FFT 就能在训练前把它算出来。</p>
+    <div class="byline">
+      <span>2026-08-21</span>
+      <span>wavefield-low-rank-representation @ main</span>
+      <span>exp29–exp33</span>
+    </div>
+  </header>
+
+  <div class="keyfigs">
+    <div class="keyfig"><b>0.9915</b><span>预测增益 vs 实测增益的 R²，跨四个物理族</span></div>
+    <div class="keyfig"><b>928 / 0</b><span>界检验次数 / 违反次数</span></div>
+    <div class="keyfig"><b>428×</b><span>参数量扫描，测试误差纹丝不动</span></div>
+    <div class="keyfig"><b>1.40</b><span>误差与界的比值中位数，[1.17, 1.59]</span></div>
+  </div>
+
+  <blockquote>
+    稀疏观测的物理场上，误差里有多少<strong>不可学习</strong>，可以在训练前用<strong>一次 FFT</strong> 算出来——与用什么模型无关、不需要真值、不需要知道方程。同一次 FFT 还多回答一件事：<strong>换一个坐标系能把误差降多少倍</strong>，而这是在做变换<strong>之前</strong>就知道。
+  </blockquote>
+
+  <section>
+    <h2><span class="num">01</span>问题：误差到底从哪来</h2>
+
+    <p>拿一个具体场景。地震勘探里，地面上排一条 70 个检波器的测线，放一炮，每个检波器记录一段一秒的波形。现在假设你只买得起 14 个检波器——五分之一的密度。中间那 56 个位置的波场，你能重建出来吗？</p>
+
+    <p>这不是一个假想的问题。神经场、算子学习、隐式表征这一整条线，几乎都在做形式相同的事：从稀疏观测里恢复一个连续的物理场。而当结果不好时，这个领域的默认反应高度一致——<strong>加容量、换位置编码、调架构、堆数据</strong>。</p>
+
+    <p>这份报告的核心主张是：<strong>这个默认反应，在很大一部分情形下是错的，而且错得可以被提前证明。</strong></p>
+
+    <h3>为什么错</h3>
+
+    <p>传感器之间的场，有一部分在<strong>信息层面</strong>就不被这些样本决定。不是模型学不出来，是样本里根本没有。间距为 <code>m</code> 的规则阵列，波数高于 <code>1/(2m)</code> 的成分与低于它的成分在采样后完全重合——这就是混叠，任何估计器都无法把它们分开。</p>
+
+    <p>于是相对误差有一个下界：</p>
+
+    <div class="formula">误差 ≥ sqrt( 能量(|k| &gt; 1/(2m)) / 总能量 ) ≡ 可辨识性界</div>
+
+    <p>这句话有三个特点，每一个都重要：</p>
+
+    <ul>
+      <li>它是<strong>信息层面的陈述</strong>——与你用什么模型无关，网络、插值、字典学习一视同仁；</li>
+      <li><strong>一次 FFT 就能算</strong>——不需要训练，不需要真值，不需要知道控制方程；</li>
+      <li>它<strong>可以被改变</strong>——不是通过更好的模型，而是通过<strong>换一个坐标系</strong>。</li>
+    </ul>
+
+    <p>第三点是全篇的枢纽，也是最容易被误读的一点。所以先把它讲清楚。</p>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>坐标变换：把能量搬到门槛以下</h2>
+
+    <p>设想一个沿测线传播的脉冲。在原始坐标下，它到达第 <code>x</code> 个传感器的时刻是 <code>τ(x)</code>，随位置线性推移。把这个场沿时间做傅里叶变换，得到 <code>u(x, f)</code>，那个推移就变成了一个沿传感器轴快速旋转的相位：<code class="m">exp(−2πi f τ(x))</code>。</p>
+
+    <p><strong>这个快速旋转本身就是高波数能量。</strong> 它不是场的复杂性，它只是"同一个东西在不同时刻到达"这件事的记账方式。</p>
+
+    <p>如果你把坐标轴按 <code>τ(x)</code> 弯一下——也就是给每个传感器乘上 <code class="m">exp(+2πi f τ(x))</code>——这个相位就被抵消了，脉冲在新坐标下沿测线是常数。原本远在 Nyquist 之上的能量，整块搬到了门槛以下。</p>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 640 218" role="img" aria-label="示意图：波数谱中的能量分布与 Nyquist 门槛，warp 前后对比">
+        <defs>
+          <linearGradient id="fadeA" x1="0" x2="1">
+            <stop offset="0" stop-color="var(--alarm)" stop-opacity="0.55"/>
+            <stop offset="1" stop-color="var(--alarm)" stop-opacity="0.15"/>
+          </linearGradient>
+        </defs>
+        <!-- left panel -->
+        <text x="14" y="20" font-family="var(--sans)" font-size="12" fill="var(--ink-soft)">原坐标</text>
+        <line x1="14" y1="170" x2="290" y2="170" stroke="var(--rule-strong)" stroke-width="1"/>
+        <line x1="120" y1="40" x2="120" y2="178" stroke="var(--gold)" stroke-width="1.5" stroke-dasharray="4 3"/>
+        <text x="124" y="52" font-family="var(--mono)" font-size="10" fill="var(--gold)">Nyquist</text>
+        <path d="M14 170 C 50 168, 70 140, 95 118 S 140 78, 175 92 S 235 130, 290 160 L290 170 Z" fill="url(#fadeA)"/>
+        <path d="M14 170 C 50 168, 70 140, 95 118 S 140 78, 175 92 S 235 130, 290 160" fill="none" stroke="var(--alarm)" stroke-width="1.8"/>
+        <text x="180" y="196" font-family="var(--sans)" font-size="11" fill="var(--alarm)">门槛之外：不可辨识</text>
+        <text x="20" y="196" font-family="var(--sans)" font-size="11" fill="var(--ink-faint)">波数 →</text>
+
+        <!-- arrow -->
+        <path d="M304 108 L340 108" stroke="var(--ink-faint)" stroke-width="1.5" marker-end="url(#ah)"/>
+        <defs><marker id="ah" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill="var(--ink-faint)"/></marker></defs>
+        <text x="322" y="98" text-anchor="middle" font-family="var(--sans)" font-size="10" fill="var(--ink-faint)">warp</text>
+
+        <!-- right panel -->
+        <text x="356" y="20" font-family="var(--sans)" font-size="12" fill="var(--ink-soft)">弯折后的坐标</text>
+        <line x1="356" y1="170" x2="626" y2="170" stroke="var(--rule-strong)" stroke-width="1"/>
+        <line x1="460" y1="40" x2="460" y2="178" stroke="var(--gold)" stroke-width="1.5" stroke-dasharray="4 3"/>
+        <text x="464" y="52" font-family="var(--mono)" font-size="10" fill="var(--gold)">Nyquist</text>
+        <path d="M356 170 C 372 120, 386 58, 404 56 S 434 130, 452 164 S 500 169, 626 170 L626 170 Z" fill="var(--accent)" fill-opacity="0.22"/>
+        <path d="M356 170 C 372 120, 386 58, 404 56 S 434 130, 452 164 S 500 169, 626 170" fill="none" stroke="var(--accent)" stroke-width="1.8"/>
+        <text x="500" y="196" font-family="var(--sans)" font-size="11" fill="var(--accent)">几乎全部落在门槛之内</text>
+      </svg>
+      <figcaption>坐标变换不增加任何数据、不增加任何参数。它只是改变了同一个场在波数轴上的记账方式——而门槛的位置由传感器密度决定，不动。</figcaption>
+    </figure>
+
+    <div class="note key">
+      <span class="lab">枢纽</span>
+      因为这个搬运是纯粹的相位乘法，它<strong>不改变任何能量总量</strong>，只改变能量落在门槛哪一侧。所以"换坐标能买回多少"这个问题，答案完全写在两次 FFT 的差里——不需要真的去做重构，也不需要训练任何东西。
+    </div>
+
+    <h3>三条测量纪律</h3>
+
+    <p>这三条每一条都是踩坑之后加的，而且每一条不加都会让结论失效。写在这里是因为它们决定了数字能不能信。</p>
+
+    <ol>
+      <li><strong>规则阵列，不是随机采样。</strong> 随机采样下混叠不是一堵墙——稀疏的高波数内容可以被恢复（压缩感知正是利用这一点），此时上面那个量不再是界。早期用随机采样时有 6.5% 的样本打破了"界"，那不是界错了，是问题被换掉了。规则阵列也更贴近真实传感硬件。</li>
+      <li><strong>有遮挡的区域要裁剪，不能补零。</strong> 补零会插入一条本不存在的阶跃边，凭空制造高波数能量把界抬高。修之前，两个公开数据集上的打破率分别是 70.8% 和 71%。</li>
+      <li><strong>加锥形窗，且预测与实测用同一个窗。</strong> 非周期的光滑场在矩形窗下泄漏出 <code>1/k</code> 拖尾，对严重过采样的场而言那条拖尾<em>就是</em>全部"界外能量"，足以让界超过它本该下界的误差。</li>
+    </ol>
+
+    <div class="note warn">
+      <span class="lab">一个真实的错误</span>
+      第三条一度只做了一半：界作用在加窗信号上，重构却拟合未加窗的样本、只在误差里把窗当权重用。这让估计器在边缘上"被打了折"而界没有，于是它<strong>打破了界</strong>。加窗只做一次、放在最前面，预测与测量才在同一个对象上。现在有测试钉死这一点。
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">03</span>主结果一：它确实是界，而且接近紧</h2>
+
+    <div class="spine">
+      <div class="claim"><span class="tag">主张</span><span class="body">对任何只使用本实例样本的估计器，实测误差不低于判据给出的界。</span></div>
+      <div><span class="tag">证据</span><span class="body">四个物理族、464 次测量、928 次界检验（原坐标与弯折坐标各算一次），<strong>0 次违反</strong>。误差与界的比值中位数 1.40，5–95 百分位 [1.17, 1.59]。</span></div>
+      <div><span class="tag">证伪条件</span><span class="body">任何一个不带先验的估计器在规则阵列上稳定低于界。</span></div>
+    </div>
+
+    <p>比值集中在 1.40 这件事，比"零违反"更值得注意。它意味着界不只是一个成立的不等式，而是一个<strong>标定过的预测量</strong>：知道界，你就知道一个合理估计器的实际误差大约在哪里，误差带很窄。</p>
+
+    <p>用来打分的估计器故意选了<strong>零参数</strong>的：在采样能分辨的频带内做最小二乘带限拟合。这不是为了展示它多强，而是为了让"欠拟合"这个指控无从谈起——它没有可以欠拟合的参数。</p>
+  </section>
+
+  <section>
+    <h2><span class="num">04</span>主结果二：判据预测了坐标变换的收益</h2>
+
+    <div class="spine">
+      <div class="claim"><span class="tag">主张</span><span class="body">在做坐标变换之前，判据就能预测这个变换会把误差降多少倍。</span></div>
+      <div><span class="tag">证据</span><span class="body">预测增益（界之比）与实测增益（误差之比）：log 斜率 <strong>1.043</strong>，<strong>R² 0.9915</strong>，n=464，跨越 1.00×–8.73×。</span></div>
+      <div><span class="tag">证伪条件</span><span class="body">预测与实测在任一物理族上系统性偏离，或关系在某个增益区间断裂。</span></div>
+    </div>
+
+    <p>这是整个项目最强的结果。四个物理族放在<strong>完全相同</strong>的处理管线上，数据全部公开、<strong>无一由本项目生成</strong>：</p>
+
+    <div class="tablewrap">
+      <table>
+        <caption>exp29。warp 族取最弱的一种——单个输运速度。这是刻意的：它找到的收益是任何学出来的坐标映射的下界，而且它落在哪个速度可以拿物理去核对。</caption>
+        <thead>
+          <tr><th>物理族</th><th class="n">用例</th><th class="n">原始界</th><th class="n">预测增益</th><th class="n">实测增益</th><th class="n">恢复的速度</th></tr>
+        </thead>
+        <tbody>
+          <tr class="hi"><td>地震炮集（OpenFWI）</td><td class="n">40</td><td class="n">0.606</td><td class="n">2.54×</td><td class="n">2.83×</td><td class="n">2538 m/s</td></tr>
+          <tr><td>圆柱尾流（<strong>实测 PIV</strong>）</td><td class="n">24</td><td class="n">0.322</td><td class="n">1.24×</td><td class="n">1.24×</td><td class="n">0.271 m/s</td></tr>
+          <tr><td>Kuramoto–Sivashinsky</td><td class="n">20</td><td class="n">0.285</td><td class="n">1.02×</td><td class="n">1.02×</td><td class="n">—</td></tr>
+          <tr class="dim"><td>二维湍流 Re 40</td><td class="n">16</td><td class="n">0.350</td><td class="n">1.00×</td><td class="n">1.00×</td><td class="n">噪声</td></tr>
+          <tr class="dim"><td>二维湍流 Re 5000</td><td class="n">16</td><td class="n">0.373</td><td class="n">1.01×</td><td class="n">1.01×</td><td class="n">噪声</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>判据从数据里找回了物理</h3>
+
+    <p>最后一列值得单独说。判据没有被告知任何方程、任何介质参数、任何几何。它只是在扫描"哪个输运速度让界最低"。而它落在的地方：</p>
+
+    <ul>
+      <li>地震炮集上是 <strong>2538 m/s</strong>，速度模型的真实范围是 1500–4500 m/s，四分位距 769；</li>
+      <li>圆柱尾流的实测 PIV 上是 <strong>0.271 m/s</strong>，来流实测 0.306 m/s——比值 <strong>0.89</strong>，这是卡门涡街对流速度的教科书值；</li>
+      <li>而在两个湍流族上，它找回的是<strong>噪声</strong>：中位数接近零，四分位距比中位数本身还宽。</li>
+    </ul>
+
+    <div class="note good">
+      <span class="lab">为什么这一条重要</span>
+      一个只是"有相关性"的量，在湍流上也会给出某个看起来像速度的数。这里它给出的是噪声——<strong>因为湍流里真的没有相干输运结构可找</strong>。判据在该有答案的地方给出物理正确的答案，在不该有答案的地方拒绝作答。这是它有<strong>区分力</strong>而非仅有相关性的直接证据。
+    </div>
+
+    <h3>一个反例，比正例更能说明机制</h3>
+
+    <p>圆柱尾流的<strong>涡量</strong>场是最干净的一个反例。它的原始界高达 <strong>0.84</strong>——按第 3 节的标准，这是一个真正不可辨识的场。但坐标变换只买到 <strong>1.05×</strong>。</p>
+
+    <p>原因是判据的两个条件必须<strong>同时</strong>成立：原坐标下要有显著的混叠能量（涡量场满足），<em>并且</em>那部分能量必须是<strong>相干输运</strong>的（涡量场不满足——它不可辨识的那部分是非相干的小尺度湍流）。输运型 warp 搬不动非相干的东西。</p>
+  </section>
+
+  <section>
+    <h2><span class="num">05</span>主结果三：单实例容量跨不过界</h2>
+
+    <div class="spine">
+      <div class="claim"><span class="tag">主张</span><span class="body">在单个实例上，无论把模型放大多少倍，都无法跨过界。</span></div>
+      <div><span class="tag">证据</span><span class="body">参数量扫过 <strong>428×</strong>、训练损失降到 <strong>4.7e-16</strong>，测试误差始终 <strong>&gt; 1</strong>；同一任务上零参数估计器换个坐标是 <strong>0.177</strong>。</span></div>
+      <div><span class="tag">证伪条件</span><span class="body">存在一个只用本实例样本的模型，把测试误差压到界以下。</span></div>
+    </div>
+
+    <p>公开数据（OpenFWI），12 个留出炮集，只给 14 / 70 个传感器：</p>
+
+    <div class="tablewrap">
+      <table>
+        <caption>exp31。坐标网络是标准配置的 Fourier-feature MLP，训到收敛。训练损失 4.7e-16 意味着它把观测到的 14 列<strong>完全背下来了</strong>——这不是欠拟合。</caption>
+        <thead><tr><th>估计器</th><th class="n">参数</th><th class="n">测试误差</th></tr></thead>
+        <tbody>
+          <tr><td>坐标网络（最小）</td><td class="n">1 922</td><td class="n"><span class="lose">2.10</span></td></tr>
+          <tr><td>坐标网络（最大）</td><td class="n">823 298</td><td class="n"><span class="lose">1.05</span></td></tr>
+          <tr><td>线性插值</td><td class="n">0</td><td class="n">0.799</td></tr>
+          <tr><td>带限估计器</td><td class="n">0</td><td class="n">0.472</td></tr>
+          <tr><td>带限估计器 + 稠密场扫出的 warp</td><td class="n">0</td><td class="n">0.202</td></tr>
+          <tr class="hi"><td>带限估计器 + <strong>学出的 warp</strong>（免标签）</td><td class="n">0</td><td class="n"><span class="win">0.177</span></td></tr>
+          <tr class="dim"><td>界（原坐标 / 学出坐标）</td><td class="n">—</td><td class="n">0.302 / 0.133</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>把这几个数放在一起读：<strong>428 倍参数、训练集背到 1e-16、测试误差 1.05</strong>——比直接输出零还差。<strong>零参数的估计器换一个坐标，0.177。</strong> 相差 6 倍，而参数量相差的方向是反的。</p>
+
+    <p class="note">测试误差大于 1 不是笔误。它表示估计器的输出比"全零"更远离真值——这是混叠失效的典型形态：网络在观测点之间外推出了自信而错误的结构。</p>
+  </section>
+
+  <section>
+    <h2><span class="num">06</span>必要的修正：跨过界的是先验，不是容量</h2>
+
+    <p>做到这里，一个自然的写法是"容量改不了它，换坐标可以"。<strong>这句话不完全对</strong>，而发现它不对的实验必须写进来。</p>
+
+    <p>把一个重构网络放到 480 个<strong>稠密</strong>炮集上做监督训练，然后在没见过的速度模型上、只给它 14 个传感器——它的测试误差是 <strong>0.114</strong>。而原始界是 <strong>0.256</strong>。</p>
+
+    <div class="note warn">
+      <span class="lab">它穿过了界</span>
+      这不是界算错了。界约束的是<strong>只使用本实例样本</strong>的估计器。跨实例训练的网络携带一个<strong>先验</strong>，而先验是本实例样本之外的额外信息。用了额外信息，自然可以走到只用样本走不到的地方。
+    </div>
+
+    <p>所以正确的说法是：</p>
+
+    <blockquote>
+      补上缺口的不是<strong>容量</strong>，而是<strong>信息</strong>。信息只有两个来源：更多传感器，或者一个跨实例学到的先验。判据把误差拆成"缺失的信息"（界）与"估计器的松弛"（误差 − 界），并给出先验至少要补多少。
+    </blockquote>
+
+    <p>第 5 节的结论完好无损——它说的正是<strong>单实例</strong>容量无用，而 428× 那组数据把这一点钉得很死。两者合起来才是完整的图景。</p>
+
+    <h3>花掉先验的两条路</h3>
+
+    <div class="tablewrap">
+      <table>
+        <caption>exp32，40 个留出炮集。直接监督路线赢 27%，代价是 21 倍参数与稠密标签。这一条必须如实写进论文，不能只报坐标路线的增益。</caption>
+        <thead><tr><th>路线</th><th>用先验做什么</th><th class="n">参数</th><th>标签</th><th class="n">测试误差</th><th class="n">下限</th></tr></thead>
+        <tbody>
+          <tr><td>零参数，原坐标</td><td>无</td><td class="n">0</td><td>无</td><td class="n">0.393</td><td class="n">界 0.256</td></tr>
+          <tr class="hi"><td>零参数 + 学出的坐标</td><td>只买坐标</td><td class="n">87 k</td><td><strong>无</strong></td><td class="n">0.156</td><td class="n">界 0.131</td></tr>
+          <tr><td>直接监督重构</td><td>买整个场</td><td class="n">1 841 k</td><td>稠密</td><td class="n"><span class="win">0.114</span></td><td class="n">无</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>坐标路线的天花板<strong>正是它自己坐标系下的界</strong>（0.131），因为它的估计器不带先验。要走到那以下，先验必须注入到重构本身，而不只是坐标里。这是一个结构性的限制，不是调参能解决的。</p>
+
+    <p>另一边，坐标路线的价值也很明确：<strong>免标签、小 21 倍、中间量（每个传感器的延迟）可以直接拿物理去检验</strong>。直接监督网络的 184 万个参数里没有任何一个可以这样检验。</p>
+  </section>
+
+  <section>
+    <h2><span class="num">07</span>主结果四：warp 自身也是一个可辨识性问题</h2>
+
+    <div class="spine">
+      <div class="claim"><span class="tag">主张</span><span class="body">坐标变换不能从单个实例的稀疏观测里学出来；跨实例摊销才能。</span></div>
+      <div><span class="tag">证据</span><span class="body">单实例拟合增益 <strong>0.93×</strong>，只在 42% 的样本上有效；摊销 <strong>2.79×</strong>，100% 有效，并在 62% 的样本上超过稠密场扫描。</span></div>
+      <div><span class="tag">证伪条件</span><span class="body">某个正则化或参数化让单实例拟合稳定达到摊销的水平。</span></div>
+    </div>
+
+    <p>这一节起源于一个方法学漏洞。第 4 节里，每个 warp 都是<strong>用稠密场</strong>扫出来的。这在"传感器该放哪"这个设计问题上完全合法——先导测量确实是稠密的。但它<strong>不能</strong>当作重构方法：重构只看得到稀疏样本，用稠密场挑 warp 是循环论证。</p>
+
+    <p>于是把 warp 的来源分成三档，用同一个未训练估计器打分，同样只给 14 / 70 个传感器：</p>
+
+    <div class="tablewrap">
+      <table>
+        <caption>exp30，40 个留出炮集，来自训练集从未包含的速度模型。摊销网络的种子间离散度是 0.004。</caption>
+        <thead><tr><th>warp 从哪来</th><th class="n">增益（中位）</th><th class="n">四分位</th><th class="n">有效比例</th></tr></thead>
+        <tbody>
+          <tr><td>稠密场上扫一个输运速度</td><td class="n">2.61×</td><td class="n">[1.73, 4.93]</td><td class="n">100%</td></tr>
+          <tr><td><strong>单个炮集的 14 个传感器上拟合</strong></td><td class="n"><span class="lose">0.93×</span></td><td class="n">[0.78, 1.15]</td><td class="n"><span class="lose">42%</span></td></tr>
+          <tr class="hi"><td>跨炮集训练的网络，同样 14 个传感器</td><td class="n"><span class="win">2.79×</span></td><td class="n">[2.35, 3.75]</td><td class="n">100%</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>中间那一行是发现，而且失败的方式很说明问题：<strong>优化本身是成功的</strong>——秩代理在观测列上降了三倍。它只是给出了一个在观测点上正确、在观测点<strong>之间</strong>错误的延迟。</p>
+
+    <div class="note key">
+      <span class="lab">递归</span>
+      十四个传感器不足以确定传感器之间的延迟——<strong>warp 本身在稀疏阵列上不可辨识</strong>。这正是本项目的判据递归作用在了它自己的方法上。而解决办法不是更强的正则化，是<strong>更多实例</strong>：一族炮集的 warp 共享结构，跨它们训练的网络学到的是那个结构，而不是从十四个数里重新推导。
+    </div>
+
+    <p>摊销版本还有一个不在预期内的结果：它在 <strong>62%</strong> 的炮集上<strong>超过了稠密场扫描</strong>，而且离散度更小。原因是扫描被锁死在单一速度，而地震的动校正是<strong>双曲</strong>的——物理形状的单参数 warp 本来就留了东西没拿。学出来的坐标可以是任意光滑延迟。</p>
+
+    <p class="note">训练时用稠密场是合法的：训练数据确实稠密。目标函数仍然是免标签的判据本身，从未使用真实延迟标签。部署时只看稀疏传感器。这个划分是整件事能落地的关键。</p>
+  </section>
+
+  <section>
+    <h2><span class="num">08</span>坐标作为归纳偏置：一个温和的正面结果</h2>
+
+    <p>第 6 节留下一个问题：坐标路线自己打不过直接监督，那<strong>坐标能不能让直接监督本身变好</strong>？把完全相同的网络、完全相同的容量，分别放在原坐标和学出的坐标里训练：</p>
+
+    <div class="tablewrap">
+      <table>
+        <caption>exp33。三个种子，误差为中位数 ± 标准差。</caption>
+        <thead><tr><th class="n">参数</th><th class="n">原坐标</th><th class="n">学出的坐标</th><th class="n">比值</th></tr></thead>
+        <tbody>
+          <tr><td class="n">51 k</td><td class="n">0.1489 ± 0.0030</td><td class="n">0.1391 ± 0.0015</td><td class="n"><span class="win">0.93</span></td></tr>
+          <tr><td class="n">153 k</td><td class="n">0.1301 ± 0.0045</td><td class="n">0.1264 ± 0.0023</td><td class="n">0.97</td></tr>
+          <tr><td class="n">511 k</td><td class="n">0.1261 ± 0.0054</td><td class="n">0.1201 ± 0.0010</td><td class="n"><span class="win">0.95</span></td></tr>
+          <tr class="dim"><td class="n">1 841 k</td><td class="n">0.1128 ± 0.0064</td><td class="n">0.1153 ± 0.0014</td><td class="n">1.02</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>等参数量下买到 <strong>3–7%</strong>，到最大容量处失效——这是<strong>归纳偏置的典型特征：省容量，不改上限</strong>。按它本来的分量写，它不是头条。</p>
+
+    <p>更稳的那个效应在最后一列之外：<strong>种子间方差降到原来的 1/3 到 1/6</strong>（0.0010–0.0023 对 0.0030–0.0064），而且在每一个容量上都成立，包括那个比值大于 1 的。坐标让训练明显更可预测。</p>
+  </section>
+
+  <section>
+    <h2><span class="num">09</span>负面结果与边界</h2>
+
+    <p>按分量简记，细节在结果文件里。</p>
+
+    <ul>
+      <li><strong>直接监督重构仍然更好</strong>（0.114 对 0.156，赢 27%），代价是 21 倍参数与稠密标签。</li>
+      <li><strong>坐标作为归纳偏置只买到 3–7%</strong>，最大容量处失效。</li>
+      <li><strong>公开波动基准 0 / 5 落在有利区间</strong>。这不是巧合，而是一个可以事前算出来的事实：物理对齐类的方法，长期在它们可证明无效的基准上被评估。</li>
+      <li><strong>跨频外推全线失败</strong>（导波色散），<strong>定常流场上对齐有害</strong>，<strong>跨介质算子学习是弱正结果</strong>（1.13–1.26×）。这三条都不支撑任何主张，明确标注。</li>
+    </ul>
+
+    <h3>边界（必须写进论文）</h3>
+
+    <ol>
+      <li>随机采样下这不是界——会变成压缩感知问题。只对<strong>规则阵列</strong>成立。</li>
+      <li>锥形窗在极稀采样下给界设了一个<strong>下限</strong>：完全对齐后场沿阵列是常数，变换看到的就是窗本身，而窗的旁瓣越过了稀疏阵列的 Nyquist。1/5 采样以上可忽略，已有测试钉死。</li>
+      <li>收益需要两个条件<strong>同时</strong>成立：原坐标下有显著混叠能量，<em>且</em>那部分能量是相干输运的。</li>
+      <li>摊销网络在同一几何族内验证（70 接收点、5 个炮位）。跨几何有代价：留出边界免费，但<strong>留出源位置代价 1.23</strong>。</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2><span class="num">10</span>这构成一篇什么论文</h2>
+
+    <p>主贡献是<strong>诊断与分解</strong>，不是"我们的方法赢"。放在 ML 主会，它是一篇分析型论文：<em>给坐标表征一个训练前的可辨识性判据</em>。</p>
+
+    <p>它回答的是这个领域目前<strong>完全不问</strong>的三个问题：这是信息问题还是容量问题？换坐标值不值、能买回多少？先验至少要补多少？</p>
+
+    <div class="tablewrap">
+      <table>
+        <caption>五节正文、四张图。其余 28 个实验降为附录或从论文中删除，代码留在仓库。</caption>
+        <thead><tr><th class="n">节</th><th>主张</th><th class="n">实验</th></tr></thead>
+        <tbody>
+          <tr><td class="n">1</td><td>判据是界，且接近紧</td><td class="n">exp29</td></tr>
+          <tr class="hi"><td class="n">2</td><td><strong>判据预测坐标变换的收益</strong></td><td class="n">exp29</td></tr>
+          <tr><td class="n">3</td><td>单实例容量跨不过界</td><td class="n">exp31</td></tr>
+          <tr><td class="n">4</td><td>跨过界的是先验，不是容量</td><td class="n">exp32</td></tr>
+          <tr><td class="n">5</td><td>warp 自身不可辨识，摊销修好它</td><td class="n">exp30</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>还缺的一格</h3>
+
+    <p>第 2 节的预测律是用<strong>最弱 warp</strong>（单一输运速度）建立的。用第 7 节那个<strong>学出来的 warp</strong> 在四个物理族上重跑一遍，会给出更强的上界，也让第 2 节和第 5 节接上。这是目前唯一明显缺的实验，代价约半天。</p>
+  </section>
+
+  <div class="footer">
+    <p>所有数字由 <code>experiments/verify_report_numbers.py</code> 从结果文件重新导出，未经手抄。数据来源：OpenFWI CurveFault-A、RealPDEBench cylinder（real）、Kolmogorov 2D NS、Kuramoto–Sivashinsky——全部公开，无一由本项目生成。</p>
+    <p>仓库文档：<code>docs/POSITIONING_CROSS_PHYSICS_ZH.md</code>（定位）、<code>docs/PAPER_SCOPE_ZH.md</code>（取舍清单）、<code>docs/REPORT_ZH.md</code>（完整证据）。</p>
+  </div>
+
+</div>
