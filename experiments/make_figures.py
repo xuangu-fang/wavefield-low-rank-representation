@@ -956,6 +956,103 @@ def figure_capacity_public() -> None:
     plt.close(figure)
 
 
+def figure_prior_not_capacity() -> None:
+    """Where the error goes once a prior is allowed into the estimator."""
+
+    capacity = RESULTS / "exp33_coordinate_bias.json"
+    routes = RESULTS / "exp32_direct_vs_coordinate.json"
+    if not (capacity.exists() and routes.exists()):
+        return
+    bias = json.loads(capacity.read_text())["summary"]
+    route = json.loads(routes.read_text())["summary"]
+
+    figure, axes = plt.subplots(1, 2, figsize=(9.8, 4.2))
+
+    ax = axes[0]
+    for label, colour, marker in (
+        ("raw", "#7A8288", "o"),
+        ("warped", "#1F6FB2", "s"),
+    ):
+        block = bias["results"][label]
+        widths = sorted(block, key=lambda k: block[k]["n_param"])
+        params = [block[w]["n_param"] for w in widths]
+        values = [block[w]["test_error_median"] for w in widths]
+        spread = [block[w]["test_error_std"] for w in widths]
+        ax.errorbar(
+            params,
+            values,
+            yerr=spread,
+            color=colour,
+            marker=marker,
+            ms=4.5,
+            lw=1.6,
+            capsize=3,
+            label=f"supervised model, {label} coordinate",
+        )
+    ax.axhline(
+        bias["bounds_median"]["warped"],
+        color="#E0A030",
+        ls=":",
+        lw=1.2,
+        label="bound in the learned coordinate",
+    )
+    ax.set_xscale("log")
+    ax.set_xlabel("trainable parameters")
+    ax.set_ylabel("error at the withheld sensors")
+    ax.set_title("the coordinate buys capacity, not a new ceiling")
+    ax.legend(fontsize=7, loc="upper right")
+
+    ax = axes[1]
+    entries = [
+        ("band-limited\n0 parameters", route["bandlimited_median"], "#7A8288", 0),
+        (
+            "0 parameters\n+ learned coordinate",
+            route["warp_bandlimited_median"],
+            "#4C9A6A",
+            route["warp_net_parameters"],
+        ),
+        (
+            "supervised\nreconstruction",
+            min(v["test_error_median"] for v in route["direct"].values()),
+            "#1F6FB2",
+            max(v["n_param"] for v in route["direct"].values()),
+        ),
+    ]
+    positions = np.arange(len(entries))
+    ax.bar(
+        positions,
+        [value for _, value, _, _ in entries],
+        color=[colour for _, _, colour, _ in entries],
+        width=0.62,
+    )
+    for offset, (_, value, _, n_param) in zip(positions, entries):
+        note = "0 par" if n_param == 0 else f"{n_param/1e3:.0f}k par"
+        ax.text(offset, value + 0.012, f"{value:.3f}\n{note}", ha="center", fontsize=7)
+    ax.axhline(
+        route["bound_raw_median"],
+        color="#B4413C",
+        ls="--",
+        lw=1.2,
+        label="bound, raw coordinate",
+    )
+    ax.axhline(
+        route["bound_warp_median"],
+        color="#E0A030",
+        ls=":",
+        lw=1.2,
+        label="bound, learned coordinate",
+    )
+    ax.set_xticks(positions)
+    ax.set_xticklabels([name for name, _, _, _ in entries], fontsize=7.5)
+    ax.set_ylabel("error at the withheld sensors")
+    ax.set_ylim(0, 0.52)
+    ax.set_title("a prior crosses the bound; capacity alone does not")
+    ax.legend(fontsize=7, loc="upper right")
+    figure.tight_layout()
+    figure.savefig(FIGURES / "fig20_prior_not_capacity.png")
+    plt.close(figure)
+
+
 def main() -> None:
     FIGURES.mkdir(parents=True, exist_ok=True)
     figure_rank_law()
@@ -977,6 +1074,7 @@ def main() -> None:
     figure_cross_physics()
     figure_warp_provenance()
     figure_capacity_public()
+    figure_prior_not_capacity()
     print(f"figures written to {FIGURES}")
 
 
