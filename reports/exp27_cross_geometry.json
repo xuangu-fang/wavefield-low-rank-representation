@@ -1,0 +1,98 @@
+{
+  "target_stride": 6,
+  "sources": [
+    [
+      0.5,
+      0.28
+    ],
+    [
+      0.3,
+      0.3
+    ],
+    [
+      0.7,
+      0.3
+    ],
+    [
+      0.4,
+      0.55
+    ],
+    [
+      0.6,
+      0.5
+    ],
+    [
+      0.25,
+      0.6
+    ],
+    [
+      0.75,
+      0.62
+    ],
+    [
+      0.5,
+      0.72
+    ],
+    [
+      0.35,
+      0.45
+    ]
+  ],
+  "absorptions": {
+    "open": 40.0,
+    "partial": 3.0,
+    "closed": 0.0
+  },
+  "rows": [
+    {
+      "split": "in_distribution",
+      "n_train": 216,
+      "n_test": 54,
+      "raw_bound": 0.9939974144816657,
+      "eikonal_bound": 0.6926661757586802,
+      "eikonal_bound_std": 0.12339862398585784,
+      "learned_bound": 0.7664228919115056,
+      "learned_bound_seed_std": 0.0009595849391670352
+    },
+    {
+      "split": "unseen_source",
+      "n_train": 180,
+      "n_test": 90,
+      "raw_bound": 0.9942818004414284,
+      "eikonal_bound": 0.7222797750892055,
+      "eikonal_bound_std": 0.14540003776827895,
+      "learned_bound": 0.8122428668697994,
+      "learned_bound_seed_std": 0.01055620131177798
+    },
+    {
+      "split": "unseen_boundary",
+      "n_train": 90,
+      "n_test": 180,
+      "raw_bound": 0.9941667243833968,
+      "eikonal_bound": 0.7914212848968601,
+      "eikonal_bound_std": 0.07077479602155591,
+      "learned_bound": 0.7921762928771993,
+      "learned_bound_seed_std": 0.00021579938724114456
+    },
+    {
+      "split": "unseen_source_open_only",
+      "n_train": 60,
+      "n_test": 30,
+      "raw_bound": 0.9936309332309677,
+      "eikonal_bound": 0.5879318576020819,
+      "eikonal_bound_std": 0.16239758857643405,
+      "learned_bound": 0.7221934668541126,
+      "learned_bound_seed_std": 0.01688731092453194
+    },
+    {
+      "split": "in_distribution_open_only",
+      "n_train": 72,
+      "n_test": 18,
+      "raw_bound": 0.993022573659535,
+      "eikonal_bound": 0.5414955396551977,
+      "eikonal_bound_std": 0.06261075876843897,
+      "learned_bound": 0.5994817250794067,
+      "learned_bound_seed_std": 0.0015775949568102021
+    }
+  ]
+}
