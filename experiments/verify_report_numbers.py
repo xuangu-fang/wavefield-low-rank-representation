@@ -83,6 +83,57 @@ def main() -> None:
         for k, v in d["summary"].items():
             line(f"  {k}", json.dumps(v) if isinstance(v, dict) else v)
 
+    print("=== 跨物理族 (exp29) ===")
+    d = load("exp29_cross_physics.json")
+    if d:
+        summary = d["summary"]
+        line("measurements / bound tests", f"{summary['n_measurements']} / {summary['n_bound_tests']}")
+        line("bound violation rate", f"{summary['bound_violation_rate']*100:.2f}%")
+        ratio = summary["error_over_bound"]
+        line("error/bound", f"median {ratio['median']:.2f} [{ratio['p05']:.2f}, {ratio['p95']:.2f}]")
+        fit = summary["gain_predicted_vs_measured"]
+        line("predicted vs measured gain", f"log slope {fit['log_slope']:.3f} R2 {fit['r2']:.4f} n={fit['n']}")
+        for family, block in summary["by_family"].items():
+            line(
+                f"  {family}",
+                f"bound {block['bound_raw_median']:.3f} pred {block['gain_predicted_median']:.2f}x "
+                f"meas {block['gain_measured_median']:.2f}x speed {block['speed_median']:.3f}"
+                f" (IQR {block['speed_iqr']:.3f})",
+            )
+
+    print("=== warp 来源三档 (exp30) ===")
+    d = load("exp30_learned_warp.json")
+    if d:
+        summary = d["summary"]
+        line("held-out gathers / observed sensors", f"{summary['n_test']} / {summary['n_observed_sensors']}")
+        line("raw error median", f"{summary['error_raw_median']:.3f}")
+        for key, block in summary["gain"].items():
+            line(
+                f"  {key}",
+                f"gain {block['median']:.2f}x [{block['p25']:.2f}, {block['p75']:.2f}] "
+                f"helped {block['fraction_above_one']*100:.0f}% of cases",
+            )
+        rows = d["rows"]
+        beat = np.mean(
+            [
+                np.mean(r["error_amortised"]) < np.mean(np.atleast_1d(r["error_oracle"]))
+                for r in rows
+            ]
+        )
+        line("amortised beats the dense-field scan", f"{beat*100:.0f}% of cases")
+
+    print("=== 公开数据上的容量对照 (exp31) ===")
+    d = load("exp31_capacity_public.json")
+    if d:
+        summary = d["summary"]
+        line("parameter range", f"{summary['parameter_range'][0]:.0f} - {summary['parameter_range'][1]:.0f} ({summary['parameter_ratio']:.0f}x)")
+        line("network train loss (median)", f"{summary['network_train_loss_median']:.2e}")
+        line("network best test error (median)", f"{summary['network_best_test_error_median']:.3f}")
+        for key, value in summary["zero_parameter_median"].items():
+            line(f"  0-param {key}", f"{value:.3f}")
+        for key, value in summary["bound_median"].items():
+            line(f"  {key}", f"{value:.3f}")
+
 
 if __name__ == "__main__":
     main()

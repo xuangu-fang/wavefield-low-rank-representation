@@ -58,7 +58,7 @@ class CoordinateNet(torch.nn.Module):
         super().__init__()
         self.register_buffer("bank", torch.randn(2, features) * scale)
         layers: list[torch.nn.Module] = []
-        n_in = 2 + 4 * features
+        n_in = 2 + 2 * features
         for _ in range(depth):
             layers += [torch.nn.Linear(n_in, width), torch.nn.GELU()]
             n_in = width
