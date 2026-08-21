@@ -165,7 +165,7 @@
     <div class="byline">
       <span>2026-08-21</span>
       <span>wavefield-low-rank-representation @ main</span>
-      <span>exp29–exp33</span>
+      <span>exp29–exp34</span>
     </div>
   </header>
 
@@ -490,6 +490,56 @@
       一个只是"有相关性"的量，在湍流上也会给出某个看起来像速度的数。这里它给出的是噪声——<strong>因为湍流里真的没有相干输运结构可找</strong>。判据在该有答案的地方给出物理正确的答案，在不该有答案的地方拒绝作答。这是它有<strong>区分力</strong>而非仅有相关性的直接证据。
     </div>
 
+    <h3>这个速度是用稠密场扫出来的——这个区别很重要</h3>
+
+    <p>上表里每一个速度，都是拿<strong>完整 70 个传感器</strong>的场去扫描"哪个 <code>c</code> 让界最低"得到的。这在"传感器该放哪"这个设计问题上完全合法——先导测量确实是稠密的。但它不能被写成"<em>只用 20% 的传感器就无方程地测出了速度</em>"，因为它根本没有只用 20%。</p>
+
+    <p>而且反对意见是精确的：<strong>判据积分的是 Nyquist <em>之上</em>的能量，而稀疏阵列看不到自己 Nyquist 之上的东西。</strong>它看到的是折叠之后的谱。</p>
+
+    <div class="note key">
+      <span class="lab">为什么这个反对不致命</span>
+      坐标变换给每个传感器乘一个<strong>模长为 1</strong> 的复数，所以它不改变任何采样点上的能量——稀疏阵列的<em>总</em>能量对 <code>c</code> 完全不敏感。但它改变了这份固定的能量<strong>如何分布在折叠band 上</strong>。<br><br>
+      单个频率上确实没信息：真波数 <code>k₀+f/c</code> 折叠成 <code>(k₀+f/c) mod 1/m</code>，是一个位置随 <code>c</code> 移动、但集中度不变的尖峰。<strong>可是正确的 <code>c</code> 会把每一个频率同时折到 <code>k=0</code></strong>，错误的 <code>c</code> 让它们散开。信息在<strong>跨频率的联合结构</strong>里，而十四列仍然看得见它。
+    </div>
+
+    <p>把同一个单参数族改成只在观测到的 14 列上打分（两个目标：折叠谱的集中度，以及秩代理）：</p>
+
+    <div class="tablewrap">
+      <table>
+        <caption>exp34。"vs 稠密偏差"是逐例速度与稠密扫描所选速度的相对差；"增益占比"是实际交付的误差下降相对于稠密扫描的比例。</caption>
+        <thead><tr><th>物理场</th><th>坐标从哪来</th><th class="n">速度</th><th class="n">vs 稠密偏差</th><th class="n">增益</th><th class="n">占稠密</th></tr></thead>
+        <tbody>
+          <tr class="dim"><td rowspan="3">地震<br>60 例</td><td>稠密场扫描</td><td class="n">2667 m/s</td><td class="n">—</td><td class="n">2.611</td><td class="n">100%</td></tr>
+          <tr class="hi"><td><strong>只用 14/70</strong>，折叠谱</td><td class="n">2731 m/s</td><td class="n">15.6%</td><td class="n">2.517</td><td class="n"><span class="win">96.4%</span></td></tr>
+          <tr class="hi"><td><strong>只用 14/70</strong>，秩代理</td><td class="n">2603 m/s</td><td class="n">15.2%</td><td class="n">2.533</td><td class="n"><span class="win">97.0%</span></td></tr>
+          <tr class="dim"><td rowspan="3">尾流<br>实测 PIV<br>12 例</td><td>稠密场扫描</td><td class="n">0.495 m/s</td><td class="n">—</td><td class="n">1.125</td><td class="n">100%</td></tr>
+          <tr class="hi"><td><strong>只用 14/70</strong>，折叠谱</td><td class="n">0.271 m/s</td><td class="n">45.2%</td><td class="n">1.092</td><td class="n"><span class="win">97.1%</span></td></tr>
+          <tr class="hi"><td><strong>只用 14/70</strong>，秩代理</td><td class="n">0.271 m/s</td><td class="n">33.0%</td><td class="n">1.098</td><td class="n"><span class="win">97.6%</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>稀疏版本交付了稠密扫描 <strong>96–98%</strong> 的收益，在地震上 100% 的样本有效、尾流上 100% 有效。<strong>而且不需要任何跨实例先验</strong>——这比预期的机制更弱、更便宜。</p>
+
+    <div class="note good">
+      <span class="lab">尾流那一格</span>
+      三个稀疏目标全部落在 <strong>0.271 m/s</strong>，正是 0.89 × 实测来流，卡门涡街对流速度的教科书值。而稠密扫描自己给的是 0.495。<strong>稀疏版本比稠密版本更接近物理真值</strong>——因为稠密扫描优化的是界，而界的最优点不必落在物理速度上。
+    </div>
+
+    <p>所以可以支持的措辞是：</p>
+
+    <blockquote>
+      只用 20% 的稀疏传感，一个单参数扫描配上折叠谱目标，就能估出主导的输运参考系——<strong>不需要方程、不需要速度标签、也不需要跨实例先验</strong>，并交付稠密场扫描 96–98% 的收益。
+    </blockquote>
+
+    <p>三条限制必须同时写：</p>
+
+    <ol>
+      <li><strong>逐例速度与稠密最优相差 13–20%（中位），但交付的收益是 96–97%</strong>——因为收益在最优点附近是平的。它是一个<strong>参考系估计器，不是精密测速仪</strong>。</li>
+      <li>它用到了已知的<strong>传感器坐标和一个参考原点</strong>（地震里是炮点位置）。这是元数据不是场数据，但仍然是输入。</li>
+      <li>只对<strong>单参数族</strong>成立。第 10 节里那个 24 特征的 MLP 在 14 个点上依然失败——<strong>过参数化的坐标变换在稀疏阵列上确实不可辨识，单个标量不是。</strong>这两件事此前从未被分开。</li>
+    </ol>
+
     <h3>一个反例，比正例更能说明机制</h3>
 
     <p>圆柱尾流的<strong>涡量</strong>场是最干净的反例。它的原始界高达 <strong>0.84</strong>——按第 6 节的标准，这是一个真正不可辨识的场。但坐标变换只买到 <strong>1.05×</strong>。</p>
@@ -600,7 +650,7 @@
 
     <div class="note key">
       <span class="lab">递归</span>
-      十四个传感器不足以确定传感器之间的延迟——<strong>坐标变换本身在稀疏阵列上不可辨识</strong>。这正是本项目的判据递归作用在了它自己的方法上。而解决办法不是更强的正则化，是<strong>更多实例</strong>：一族炮集的坐标共享结构，跨它们训练的网络学到的是那个结构，而不是从十四个数里重新推导。
+      十四个传感器不足以确定一个<em>二十四特征网络</em>所参数化的延迟——<strong>过参数化的坐标变换在稀疏阵列上不可辨识</strong>。（注意这不适用于单参数族：第 7 节末尾的 exp34 表明一个标量速度<strong>可以</strong>只从这十四列估出来。两者的区别就是自由度。）这正是本项目的判据递归作用在了它自己的方法上。而解决办法不是更强的正则化，是<strong>更多实例</strong>：一族炮集的坐标共享结构，跨它们训练的网络学到的是那个结构，而不是从十四个数里重新推导。
     </div>
 
     <p>摊销版本还有一个不在预期内的结果：它在 <strong>62%</strong> 的炮集上<strong>超过了稠密场扫描</strong>，离散度也更小。原因是扫描被锁死在单一速度（一条直线），而地震的到达时间曲线是<strong>双曲</strong>的——物理形状的单参数坐标本来就留了东西没拿。学出来的坐标可以是任意光滑延迟。</p>

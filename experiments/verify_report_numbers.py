@@ -134,6 +134,23 @@ def main() -> None:
         for key, value in summary["bound_median"].items():
             line(f"  {key}", f"{value:.3f}")
 
+    print("=== 只用稀疏传感器估输运参考系 (exp34) ===")
+    d = load("exp34_sparse_only_speed.json")
+    if d:
+        for family, block in d["summary"]["by_family"].items():
+            line(
+                f"  {family} 稠密扫描",
+                f"speed {block['speed_dense_median']:.3f} gain {block['gain_dense_median']:.3f} (n={block['n_cases']})",
+            )
+            for key in ("fold10", "fold20", "fold30", "nuclear"):
+                v = block[key]
+                line(
+                    f"    {key} (sparse-only)",
+                    f"speed {v['speed_median']:.3f} dev {v['relative_error_vs_dense_median']*100:.1f}% "
+                    f"gain {v['gain_median']:.3f} = {v['gain_fraction_of_dense']*100:.1f}% of dense "
+                    f"helped {v['helped_fraction']*100:.0f}%",
+                )
+
 
 if __name__ == "__main__":
     main()
