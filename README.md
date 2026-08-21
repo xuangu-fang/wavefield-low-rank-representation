@@ -8,6 +8,10 @@
 
 本仓库不再承诺“一个张量分解直接解决复杂波场”。它研究的是更基础的问题：复杂复数波场应该用什么坐标和中间表示，才能让后续的 completion、operator learning、跨频预测、反演或生成建模更容易。
 
+> **第一次读这个仓库？** 先看 [`docs/PRIMER_ZH.md`](docs/PRIMER_ZH.md)。
+> 它用纯机器学习的语言把任务讲清楚（**带规则掩码的矩阵补全**），
+> 给出全部专有名词的定义，并解释四个数据集分别是什么——不预设任何信号处理背景。
+
 ## 当前主线：可辨识性，而不是容量
 
 > 稀疏观测的物理场上，误差里有多少是**不可学习的缺失信息**，可以在训练前用**一次 FFT**
@@ -74,7 +78,9 @@
 - **跨介质算子学习仍是弱结果**（1.2×，数据受限），明确标注不支持主张。
 
 - 叙事定位：`docs/POSITIONING_CROSS_PHYSICS_ZH.md`（第二版，跨物理族）、`docs/POSITIONING_ZH.md`（第一版，保留）
-- 完整报告：`docs/REPORT_ZH.md`
+- 前置说明（给 ML 读者）：`docs/PRIMER_ZH.md`
+- 可读版技术报告：`docs/TECHNICAL_REPORT_ZH.html`
+- 完整证据日志：`docs/REPORT_ZH.md`
 - 理论定稿：`docs/THEORY_DELAY_OCCUPANCY.md`
 - 数据完整性发现（含本地 OpenFWI 配对错误）：`docs/DATA_INTEGRITY.md`
 - Benchmark 覆盖审计：`reports/BENCHMARK_COVERAGE.md` 与机器可读的 `reports/benchmark_registry.json`
