@@ -758,6 +758,204 @@ def figure_fields() -> None:
     plt.close(fig)
 
 
+FAMILY_COLOURS = {
+    "seismic": "#1F6FB2",
+    "wake": "#4C9A6A",
+    "ks": "#E0A030",
+    "turbulence_re40": "#B4413C",
+    "turbulence_re5000": "#8A5A9B",
+}
+FAMILY_LABELS = {
+    "seismic": "seismic gathers (OpenFWI)",
+    "wake": "cylinder wake (measured PIV)",
+    "ks": "Kuramoto-Sivashinsky",
+    "turbulence_re40": "2-D turbulence, Re 40",
+    "turbulence_re5000": "2-D turbulence, Re 5000",
+}
+
+
+def figure_cross_physics() -> None:
+    """What the criterion promised against what a coordinate change delivered."""
+
+    path = RESULTS / "exp29_cross_physics.json"
+    if not path.exists():
+        return
+    payload = json.loads(path.read_text())
+    rows, summary = payload["rows"], payload["summary"]
+
+    figure, axes = plt.subplots(1, 2, figsize=(9.6, 4.1))
+    ax = axes[0]
+    for family, colour in FAMILY_COLOURS.items():
+        block = [r for r in rows if r["family"] == family]
+        if not block:
+            continue
+        ax.scatter(
+            [r["gain_predicted"] for r in block],
+            [r["gain_measured"] for r in block],
+            s=16,
+            alpha=0.75,
+            color=colour,
+            edgecolors="none",
+            label=FAMILY_LABELS[family],
+        )
+    limits = [0.9, 10.0]
+    ax.plot(limits, limits, color="#7A8288", lw=1.0, ls="--", zorder=0)
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.set_xlim(*limits)
+    ax.set_ylim(*limits)
+    ax.set_xlabel("gain predicted before warping (bound ratio)")
+    ax.set_ylabel("gain measured after warping (error ratio)")
+    fit = summary["gain_predicted_vs_measured"]
+    ax.set_title(
+        f"predicted vs measured, {summary['n_measurements']} measurements\n"
+        f"log slope {fit['log_slope']:.3f}, $R^2$ {fit['r2']:.4f}"
+    )
+    ax.legend(loc="upper left", fontsize=7)
+
+    ax = axes[1]
+    ratios = np.array(
+        [r["error_raw"] / max(r["bound_raw"], 1e-12) for r in rows]
+        + [r["error_warped"] / max(r["bound_warped"], 1e-12) for r in rows]
+    )
+    ax.hist(ratios, bins=40, color="#1F6FB2", alpha=0.85)
+    ax.axvline(1.0, color="#B4413C", lw=1.4)
+    ax.set_xlabel("measured error / bound")
+    ax.set_ylabel("count")
+    ax.set_title(
+        f"{summary['n_bound_tests']} bound tests, "
+        f"{summary['bound_violation_rate']*100:.1f}% below the bound"
+    )
+    figure.tight_layout()
+    figure.savefig(FIGURES / "fig17_cross_physics.png")
+    plt.close(figure)
+
+
+def figure_warp_provenance() -> None:
+    """Where the warp came from decides whether it is a method or an audit."""
+
+    path = RESULTS / "exp30_learned_warp.json"
+    if not path.exists():
+        return
+    payload = json.loads(path.read_text())
+    rows, summary = payload["rows"], payload["summary"]
+
+    keys = ("oracle", "sparse", "amortised")
+    labels = {
+        "oracle": "one speed, chosen on the dense field",
+        "sparse": "delay fitted to this gather's 14 sensors",
+        "amortised": "network trained across gathers, 14 sensors in",
+    }
+    colours = {"oracle": "#7A8288", "sparse": "#B4413C", "amortised": "#1F6FB2"}
+
+    figure, axes = plt.subplots(1, 2, figsize=(9.6, 4.1))
+    ax = axes[0]
+    gains = {
+        key: np.array(
+            [r["error_raw"] / max(np.mean(np.atleast_1d(r[f"error_{key}"])), 1e-12) for r in rows]
+        )
+        for key in keys
+    }
+    positions = np.arange(len(keys))
+    ax.boxplot(
+        [gains[k] for k in keys],
+        positions=positions,
+        widths=0.55,
+        showfliers=False,
+        medianprops={"color": "#20242A", "lw": 1.6},
+    )
+    for offset, key in zip(positions, keys):
+        ax.scatter(
+            np.full(gains[key].size, offset) + np.linspace(-0.16, 0.16, gains[key].size),
+            gains[key],
+            s=13,
+            color=colours[key],
+            alpha=0.75,
+            edgecolors="none",
+        )
+    ax.axhline(1.0, color="#B4413C", lw=1.0, ls="--")
+    ax.set_xticks(positions)
+    ax.set_xticklabels(["oracle scan", "per-gather fit", "amortised"], fontsize=8)
+    ax.set_ylabel("error reduction over raw coordinates")
+    ax.set_yscale("log")
+    ax.set_title(
+        f"{summary['n_test']} held-out gathers, {summary['n_observed_sensors']} of 70 sensors"
+    )
+
+    ax = axes[1]
+    raw = np.array([r["error_raw"] for r in rows])
+    for key in keys:
+        ax.scatter(
+            raw,
+            [np.mean(np.atleast_1d(r[f"error_{key}"])) for r in rows],
+            s=18,
+            color=colours[key],
+            alpha=0.8,
+            edgecolors="none",
+            label=labels[key],
+        )
+    span = [0.0, max(raw.max(), 1.0) * 1.05]
+    ax.plot(span, span, color="#7A8288", lw=1.0, ls="--", zorder=0)
+    ax.set_xlabel("error in raw coordinates")
+    ax.set_ylabel("error after the warp")
+    ax.set_title("below the diagonal is an improvement")
+    ax.legend(loc="upper left", fontsize=7)
+    figure.tight_layout()
+    figure.savefig(FIGURES / "fig18_warp_provenance.png")
+    plt.close(figure)
+
+
+def figure_capacity_public() -> None:
+    """Two orders of magnitude of parameters against one coordinate change."""
+
+    path = RESULTS / "exp31_capacity_public.json"
+    if not path.exists():
+        return
+    payload = json.loads(path.read_text())
+    rows, summary = payload["rows"], payload["summary"]
+
+    params = np.array([s["n_param"] for s in rows[0]["sweep"]], dtype=float)
+    curves = np.array([[s["test_error"] for s in r["sweep"]] for r in rows])
+
+    figure, ax = plt.subplots(figsize=(6.4, 4.3))
+    for curve in curves:
+        ax.plot(params, curve, color="#1F6FB2", alpha=0.28, lw=1.0)
+    ax.plot(params, curves.mean(0), color="#1F6FB2", lw=2.2, label="coordinate network, mean")
+
+    zero = summary["zero_parameter_median"]
+    ax.axhline(
+        zero["bandlimited"],
+        color="#7A8288",
+        lw=1.4,
+        ls="--",
+        label="band-limited estimator, 0 parameters",
+    )
+    ax.axhline(
+        zero["bandlimited_learned_warp"],
+        color="#4C9A6A",
+        lw=2.0,
+        label="the same estimator, learned coordinate",
+    )
+    ax.axhline(
+        summary["bound_median"]["bound_learned_warp"],
+        color="#E0A030",
+        lw=1.2,
+        ls=":",
+        label="bound in the learned coordinate",
+    )
+    ax.set_xscale("log")
+    ax.set_xlabel("trainable parameters")
+    ax.set_ylabel("error at the 56 withheld sensors")
+    ax.set_title(
+        f"{summary['parameter_ratio']:.0f}x parameters, "
+        f"training loss {summary['network_train_loss_median']:.1e}"
+    )
+    ax.legend(loc="upper right", fontsize=7)
+    figure.tight_layout()
+    figure.savefig(FIGURES / "fig19_capacity_public.png")
+    plt.close(figure)
+
+
 def main() -> None:
     FIGURES.mkdir(parents=True, exist_ok=True)
     figure_rank_law()
@@ -776,6 +974,9 @@ def main() -> None:
     figure_learned_bound()
     figure_amortised()
     figure_fields()
+    figure_cross_physics()
+    figure_warp_provenance()
+    figure_capacity_public()
     print(f"figures written to {FIGURES}")
 
 
